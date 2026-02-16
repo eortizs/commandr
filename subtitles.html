@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subtítulos Palabra por Palabra</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        #subtitle-container {
+            text-align: center;
+            max-width: 90%;
+        }
+        
+        #current-word {
+            font-size: 4rem;
+            font-weight: 600;
+            text-shadow: 0 0 20px rgba(255,255,255,0.3);
+            min-height: 1.2em;
+            transition: all 0.1s ease;
+        }
+        
+        #progress {
+            position: fixed;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1rem;
+            color: #666;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.15s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        #controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+        }
+        
+        button {
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-left: 10px;
+        }
+        
+        button:hover {
+            background: #555;
+        }
+        
+        #speed-control {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: #666;
+        }
+        
+        #speed-control input {
+            width: 100px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button onclick="startAnimation()">▶️ Iniciar</button>
+        <button onclick="stopAnimation()">⏹️ Detener</button>
+    </div>
+    
+    <div id="speed-control">
+        Velocidad: <input type="range" id="speed" min="0.5" max="2" step="0.1" value="1">
+        <span id="speed-value">1x</span>
+    </div>
+    
+    <div id="subtitle-container">
+        <div id="current-word">Presiona Iniciar</div>
+    </div>
+    
+    <div id="progress">0 / 0 palabras</div>
+
+    <script>
+        // DATOS - Reemplaza con tu JSON de Groq
+        const transcriptData = {
+            "words": [
+                {"word": "¿Podemos", "start": 0.98, "end": 1.40},
+                {"word": "usar", "start": 1.40, "end": 1.98},
+                {"word": "el", "start": 1.98, "end": 3.16},
+                {"word": "modelo", "start": 3.16, "end": 4.38},
+                {"word": "de", "start": 4.38, "end": 5.12},
+                {"word": "Kimmy", "start": 5.12, "end": 5.48},
+                {"word": "2.5", "start": 5.48, "end": 6.58},
+                {"word": "para", "start": 6.58, "end": 6.98},
+                {"word": "poder", "start": 6.98, "end": 7.88},
+                {"word": "reconocer", "start": 7.88, "end": 8.44},
+                {"word": "imágenes?", "start": 8.44, "end": 8.82}
+            ]
+        };
+        
+        const currentWordEl = document.getElementById('current-word');
+        const progressEl = document.getElementById('progress');
+        const speedInput = document.getElementById('speed');
+        const speedValue = document.getElementById('speed-value');
+        let currentIndex = 0;
+        let timeoutId = null;
+        let isRunning = false;
+        
+        speedInput.addEventListener('input', (e) => {
+            speedValue.textContent = e.target.value + 'x';
+        });
+        
+        function showWord(index) {
+            if (index >= transcriptData.words.length) {
+                currentWordEl.textContent = '';
+                progressEl.textContent = `${transcriptData.words.length} / ${transcriptData.words.length} palabras - FIN`;
+                isRunning = false;
+                return;
+            }
+            
+            const word = transcriptData.words[index];
+            const speed = parseFloat(speedInput.value);
+            const duration = (word.end - word.start) / speed * 1000;
+            
+            currentWordEl.textContent = word.word;
+            currentWordEl.className = 'fade-in';
+            progressEl.textContent = `${index + 1} / ${transcriptData.words.length} palabras`;
+            
+            currentIndex = index + 1;
+            
+            timeoutId = setTimeout(() => {
+                showWord(currentIndex);
+            }, duration);
+        }
+        
+        function startAnimation() {
+            if (isRunning) return;
+            isRunning = true;
+            currentIndex = 0;
+            showWord(0);
+        }
+        
+        function stopAnimation() {
+            isRunning = false;
+            clearTimeout(timeoutId);
+            currentWordEl.textContent = 'Presiona Iniciar';
+            progressEl.textContent = `0 / ${transcriptData.words.length} palabras`;
+            currentIndex = 0;
+        }
+        
+        // Cargar datos desde archivo JSON externo si existe
+        async function loadTranscript() {
+            try {
+                const response = await fetch('transcript.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    transcriptData.words = data.words || data;
+                    progressEl.textContent = `0 / ${transcriptData.words.length} palabras`;
+                    currentWordEl.textContent = 'Presiona Iniciar';
+                }
+            } catch (e) {
+                console.log('Usando datos de ejemplo. Carga un archivo transcript.json para personalizar.');
+                progressEl.textContent = `0 / ${transcriptData.words.length} palabras`;
+            }
+        }
+        
+        loadTranscript();
+    </script>
+</body>
+</html>
