@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-02-18T03:16:00Z",
+  "last_updated": "2026-02-18T05:59:00Z",
   "default_model": "gemini-flash-lite-latest",
   "auto_process": true,
   "images": [
@@ -18,6 +18,15 @@
       "timestamp": "2026-02-18T03:16:00Z",
       "status": "pending",
       "mime_type": "image/jpeg",
+      "analysis": null
+    },
+    {
+      "id": "file_21",
+      "filename": "file_19---6165bd6e-61fa-4c3b-9277-eae846a5bc4e.jpg",
+      "timestamp": "2026-02-18T05:59:00Z",
+      "status": "pending",
+      "mime_type": "image/jpeg",
+      "source": "forwarded",
       "analysis": null
     }
   ],
