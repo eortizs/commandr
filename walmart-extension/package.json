@@ -5,10 +5,12 @@
   "main": "scraper-real-chrome.js",
   "scripts": {
     "scrape": "node scraper-real-chrome.js",
+    "consolidar": "node consolidar-resultados.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "puppeteer-core": "^21.11.0",
-    "fs-extra": "^11.2.0"
+    "fs-extra": "^11.2.0",
+    "glob": "^10.3.10"
   }
 }
