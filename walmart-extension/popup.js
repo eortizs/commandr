@@ -35,15 +35,12 @@ async function iniciarBusqueda() {
         // Obtener tab activa
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         
-        // Navegar a Walmart y buscar
-        await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: buscarEnWalmart,
-            args: [producto]
-        });
+        // Navegar a Walmart con búsqueda
+        const url = `https://www.walmart.com.mx/buscar?q=${encodeURIComponent(producto)}`;
+        await chrome.tabs.update(tab.id, { url: url });
         
         mostrarStatus('⏳ Esperando resultados...', 'info');
-        await esperar(5000);
+        await esperar(8000); // Más tiempo para cargar
         
         // Tomar screenshot
         mostrarStatus('📸 Capturando pantalla...', 'info');
@@ -68,12 +65,6 @@ async function iniciarBusqueda() {
     } finally {
         btnBuscar.disabled = false;
     }
-}
-
-// Función que se ejecuta en la página de Walmart
-function buscarEnWalmart(producto) {
-    // Navegar a página de búsqueda
-    window.location.href = `https://www.walmart.com.mx/buscar?q=${encodeURIComponent(producto)}`;
 }
 
 async function analizarConGemini(base64Image) {
