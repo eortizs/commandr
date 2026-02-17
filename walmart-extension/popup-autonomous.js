@@ -139,48 +139,69 @@ function buscarEnPagina(producto) {
 }
 
 async function analizarConGemini(base64Image) {
-    const base64Data = base64Image.replace(/^data:image\/png;base64,/, '');
-    
-    const prompt = `Analiza esta imagen de resultados de búsqueda de Walmart México.
-    Extrae los productos con sus precios.
-    
-    Responde ÚNICAMENTE en formato JSON válido:
-    [
-      {
-        "nombre": "nombre del producto",
-        "precio": "$XX.XX"
-      }
-    ]
-    
-    Si no hay productos visibles, responde: []`;
-    
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            contents: [{
-                parts: [
-                    { text: prompt },
-                    { inline_data: { mime_type: 'image/png', data: base64Data } }
-                ]
-            }]
-        })
-    });
-    
-    if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    const texto = data.candidates[0].content.parts[0].text;
-    
     try {
-        const jsonMatch = texto.match(/\[[\s\S]*\]/);
-        if (jsonMatch) return JSON.parse(jsonMatch[0]);
-        return [];
-    } catch (e) {
-        console.error('Error parseando JSON:', texto);
-        return [];
+        // La imagen ya viene como data URL desde chrome.tabs.captureVisibleTab
+        const base64Data = base64Image.replace(/^data:image\/png;base64,/, '');
+        
+        console.log('Enviando a Gemini...');
+        
+        const prompt = `Analiza esta imagen de resultados de búsqueda de Walmart México.
+Extrae los productos con sus precios visibles.
+
+Responde ÚNICAMENTE en formato JSON válido:
+[
+  {
+    "nombre": "nombre del producto",
+    "precio": "$XX.XX"
+  }
+]
+
+Si no hay productos visibles o hay un error en la página, responde: []`;
+
+        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [
+                        { text: prompt },
+                        { inline_data: { mime_type: 'image/png', data: base64Data } }
+                    ]
+                }]
+            })
+        });
+        
+        console.log('Respuesta Gemini status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error Gemini:', errorText);
+            throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Respuesta Gemini:', data);
+        
+        if (!data.candidates || !data.candidates[0]) {
+            throw new Error('Respuesta de Gemini sin candidates');
+        }
+        
+        const texto = data.candidates[0].content.parts[0].text;
+        
+        // Extraer JSON
+        try {
+            const jsonMatch = texto.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                return JSON.parse(jsonMatch[0]);
+            }
+            return [];
+        } catch (e) {
+            console.error('Error parseando JSON:', texto);
+            return [];
+        }
+    } catch (error) {
+        console.error('Error en analizarConGemini:', error);
+        throw error;
     }
 }
 
