@@ -36,7 +36,7 @@ const TIENDAS = {
     },
     lacomer: {
         nombre: 'La Comer',
-        url: (p) => `https://www.lacomer.com.mx/buscar?q=${encodeURIComponent(p)}`,
+        url: (p) => `https://www.lacomer.com.mx/lacomer/#!/busqueda?q=${encodeURIComponent(p)}`,
     }
 };
 
