@@ -32,7 +32,7 @@ npm install
 Editar `config.json`:
 ```json
 {
-  "checkInterval": "0 9 * * *",
+  "checkInterval": "0 9 * * 1",
   "notifyChannel": "telegram",
   "baselineModels": [
     "llama3.1-8b",
@@ -43,6 +43,8 @@ Editar `config.json`:
 }
 ```
 
+**Nota:** `0 9 * * 1` = Todos los lunes a las 9:00 AM
+
 ## Uso
 
 ### Manual
@@ -50,13 +52,13 @@ Editar `config.json`:
 node check-models.js
 ```
 
-### Automático (cron)
+### Automático (cron) - Semanal los lunes
 ```bash
 # Agregar a crontab
 crontab -e
 
-# Añadir línea:
-0 9 * * * cd ~/.openclaw/skills/cerebras-monitor && node check-models.js
+# Añadir línea (ejecuta todos los lunes a las 9 AM):
+0 9 * * 1 cd ~/lab/scraper/extension/commandr/cerebras-monitor && node check-models.js >> monitor.log 2>&1
 ```
 
 ## Funcionamiento
