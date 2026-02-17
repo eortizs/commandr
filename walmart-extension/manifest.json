@@ -6,10 +6,12 @@
   "permissions": [
     "activeTab",
     "storage",
-    "scripting"
+    "scripting",
+    "tabs"
   ],
   "host_permissions": [
-    "https://www.walmart.com.mx/*"
+    "https://www.walmart.com.mx/*",
+    "https://walmart.com.mx/*"
   ],
   "action": {
     "default_popup": "popup.html"
@@ -19,8 +21,9 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://www.walmart.com.mx/*"],
-      "js": ["content.js"]
+      "matches": ["https://www.walmart.com.mx/*", "https://walmart.com.mx/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
     }
   ]
 }
