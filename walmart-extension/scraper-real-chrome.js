@@ -23,17 +23,22 @@ async function scrapeWalmart(producto) {
     // Matar Chrome previo
     try {
         await execPromise('pkill -f "chrome.*--remote-debugging-port"');
-        await delay(2000);
+        await delay(3000);
     } catch (e) {}
     
-    // Lanzar Chrome
-    const chromeCmd = `"${chromePath}" --remote-debugging-port=${debuggingPort} --no-first-run --no-default-browser-check --window-size=1366,768 "https://www.walmart.com.mx/"`;
+    // Lanzar Chrome con más flags
+    const chromeCmd = `"${chromePath}" --remote-debugging-port=${debuggingPort} --remote-allow-origins=* --no-first-run --no-default-browser-check --window-size=1366,768 --start-maximized --disable-popup-blocking "https://www.walmart.com.mx/" > /dev/null 2>&1 &`;
     
     console.log('🌐 Lanzando Chrome...');
-    const chromeProcess = exec(chromeCmd, { detached: true });
+    exec(chromeCmd);
     
-    // Esperar a que Chrome esté listo
-    await delay(5000);
+    // Esperar a que Chrome esté listo (verificar puerto)
+    console.log('⏳ Esperando Chrome...');
+    await esperarPuerto(debuggingPort, 30000);
+    
+    // Conectar con Puppeteer al Chrome existente
+    console.log('🔌 Conectando a Chrome...');
+    await delay(2000);
     
     // Conectar con Puppeteer al Chrome existente
     console.log('🔌 Conectando a Chrome...');
@@ -191,6 +196,22 @@ async function analizarConGemini(imageBuffer) {
 
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function esperarPuerto(port, timeoutMs) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+        try {
+            const response = await fetch(`http://localhost:${port}/json/version`);
+            if (response.ok) {
+                return;
+            }
+        } catch (e) {
+            // Puerto no listo aún
+        }
+        await delay(500);
+    }
+    throw new Error(`Timeout esperando puerto ${port}`);
 }
 
 // Uso
