@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Walmart Scraper Autónomo",
+  "version": "2.0.0",
+  "description": "Scraper completo de Walmart - navega, captura y analiza",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "scripting",
+    "downloads"
+  ],
+  "host_permissions": [
+    "https://www.walmart.com.mx/*"
+  ],
+  "action": {
+    "default_popup": "popup-autonomous.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
