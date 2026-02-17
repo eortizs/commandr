@@ -42,7 +42,6 @@ const TIENDAS = {
                 const contenedores = document.querySelectorAll('article, .product, [data-testid]');
                 
                 contenedores.forEach(cont => {
-                    // Buscar nombre
                     const nombreSelectors = ['h3', 'h2', '.name', '[class*="name"]', '[class*="title"]', '[class*="product"]'];
                     let nombre = null;
                     for (const sel of nombreSelectors) {
@@ -53,7 +52,6 @@ const TIENDAS = {
                         }
                     }
                     
-                    // Buscar precio - span con $ y números
                     const spans = cont.querySelectorAll('span');
                     let precio = null;
                     for (const span of spans) {
@@ -99,6 +97,129 @@ const TIENDAS = {
                         if (texto.match(/^\$[\d,]+\.?\d*$/)) {
                             precio = texto;
                             break;
+                        }
+                    }
+                    
+                    if (nombre && precio) {
+                        items.push({ nombre, precio });
+                    }
+                });
+                
+                return items.slice(0, 3);
+            });
+        }
+    },
+    walmart: {
+        nombre: 'Walmart',
+        buscar: (producto) => `https://www.walmart.com.mx/buscar?q=${encodeURIComponent(producto)}`,
+        extraer: async (page) => {
+            return await page.evaluate(() => {
+                const items = [];
+                const contenedores = document.querySelectorAll('[data-automation-id="product-tile"], article, .product');
+                
+                contenedores.forEach(cont => {
+                    const nombreSelectors = ['[data-automation-id="product-title"]', 'h3', 'h2', '[class*="title"]', '[class*="name"]'];
+                    let nombre = null;
+                    for (const sel of nombreSelectors) {
+                        const el = cont.querySelector(sel);
+                        if (el && el.textContent.trim()) {
+                            nombre = el.textContent.trim();
+                            break;
+                        }
+                    }
+                    
+                    const precioSelectors = ['[data-automation-id="product-price"]', '[class*="price"]', 'span'];
+                    let precio = null;
+                    for (const sel of precioSelectors) {
+                        const el = cont.querySelector(sel);
+                        if (el) {
+                            const texto = el.textContent.trim();
+                            if (texto.match(/^\$[\d,]+\.?\d*$/)) {
+                                precio = texto;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (nombre && precio) {
+                        items.push({ nombre, precio });
+                    }
+                });
+                
+                return items.slice(0, 3);
+            });
+        }
+    },
+    bodegaaurrera: {
+        nombre: 'Bodega Aurrera',
+        buscar: (producto) => `https://www.bodegaaurrera.com.mx/buscar?q=${encodeURIComponent(producto)}`,
+        extraer: async (page) => {
+            return await page.evaluate(() => {
+                const items = [];
+                const contenedores = document.querySelectorAll('[data-automation-id="product-tile"], article, .product');
+                
+                contenedores.forEach(cont => {
+                    const nombreSelectors = ['[data-automation-id="product-title"]', 'h3', 'h2', '[class*="title"]', '[class*="name"]'];
+                    let nombre = null;
+                    for (const sel of nombreSelectors) {
+                        const el = cont.querySelector(sel);
+                        if (el && el.textContent.trim()) {
+                            nombre = el.textContent.trim();
+                            break;
+                        }
+                    }
+                    
+                    const precioSelectors = ['[data-automation-id="product-price"]', '[class*="price"]', 'span'];
+                    let precio = null;
+                    for (const sel of precioSelectors) {
+                        const el = cont.querySelector(sel);
+                        if (el) {
+                            const texto = el.textContent.trim();
+                            if (texto.match(/^\$[\d,]+\.?\d*$/)) {
+                                precio = texto;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (nombre && precio) {
+                        items.push({ nombre, precio });
+                    }
+                });
+                
+                return items.slice(0, 3);
+            });
+        }
+    },
+    lacomer: {
+        nombre: 'La Comer',
+        buscar: (producto) => `https://www.lacomer.com.mx/buscar?q=${encodeURIComponent(producto)}`,
+        extraer: async (page) => {
+            return await page.evaluate(() => {
+                const items = [];
+                const contenedores = document.querySelectorAll('.product-item, article, [data-testid]');
+                
+                contenedores.forEach(cont => {
+                    const nombreSelectors = ['.product-name', 'h3', 'h2', '[class*="name"]', '[class*="title"]'];
+                    let nombre = null;
+                    for (const sel of nombreSelectors) {
+                        const el = cont.querySelector(sel);
+                        if (el && el.textContent.trim()) {
+                            nombre = el.textContent.trim();
+                            break;
+                        }
+                    }
+                    
+                    const precioSelectors = ['.product-price', '[class*="price"]', 'span'];
+                    let precio = null;
+                    for (const sel of precioSelectors) {
+                        const el = cont.querySelector(sel);
+                        if (el) {
+                            const texto = el.textContent.trim();
+                            if (texto.match(/^\$[\d,]+\.?\d*$/)) {
+                                precio = texto;
+                                break;
+                            }
                         }
                     }
                     
