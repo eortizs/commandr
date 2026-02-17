@@ -30,23 +30,33 @@ async function iniciarBusqueda() {
     btnExportar.style.display = 'none';
     
     try {
-        mostrarStatus('🌐 Navegando a Walmart...', 'info');
+        mostrarStatus('🌐 Abriendo Walmart...', 'info');
         
         // Obtener tab activa
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         
-        // Navegar a Walmart con búsqueda
-        const url = `https://www.walmart.com.mx/buscar?q=${encodeURIComponent(producto)}`;
-        await chrome.tabs.update(tab.id, { url: url });
+        // PASO 1: Ir a página inicial de Walmart
+        await chrome.tabs.update(tab.id, { url: 'https://www.walmart.com.mx/' });
+        
+        mostrarStatus('⏳ Esperando carga de página...', 'info');
+        await esperar(5000);
+        
+        // PASO 2: Simular búsqueda humana
+        mostrarStatus('⌨️ Escribiendo búsqueda...', 'info');
+        await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: simularBusquedaHumana,
+            args: [producto]
+        });
         
         mostrarStatus('⏳ Esperando resultados...', 'info');
-        await esperar(8000); // Más tiempo para cargar
+        await esperar(8000);
         
-        // Tomar screenshot
+        // PASO 3: Tomar screenshot
         mostrarStatus('📸 Capturando pantalla...', 'info');
         const screenshot = await chrome.tabs.captureVisibleTab(null, { format: 'png' });
         
-        // Analizar con Gemini
+        // PASO 4: Analizar con Gemini
         mostrarStatus('🤖 Analizando con Gemini...', 'info');
         const productos = await analizarConGemini(screenshot);
         
@@ -67,8 +77,62 @@ async function iniciarBusqueda() {
     }
 }
 
+// Función que simula búsqueda humana en la página
+function simularBusquedaHumana(producto) {
+    return new Promise((resolve) => {
+        // Buscar el input de búsqueda
+        const input = document.querySelector('input[data-automation-id="header-input-search"]') ||
+                      document.querySelector('input[placeholder*="Buscar"]') ||
+                      document.querySelector('input[type="search"]') ||
+                      document.querySelector('input[name="q"]');
+        
+        if (!input) {
+            console.error('No se encontró el input de búsqueda');
+            resolve();
+            return;
+        }
+        
+        // Click en el input
+        input.click();
+        input.focus();
+        
+        // Limpiar y escribir el producto letra por letra (como humano)
+        input.value = '';
+        let i = 0;
+        const escribir = () => {
+            if (i < producto.length) {
+                input.value += producto[i];
+                i++;
+                // Disparar eventos de input
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                setTimeout(escribir, 50 + Math.random() * 100); // Delay aleatorio entre letras
+            } else {
+                // Presionar ENTER
+                setTimeout(() => {
+                    const enterEvent = new KeyboardEvent('keydown', {
+                        key: 'Enter',
+                        code: 'Enter',
+                        keyCode: 13,
+                        which: 13,
+                        bubbles: true
+                    });
+                    input.dispatchEvent(enterEvent);
+                    
+                    // También intentar con submit del form
+                    const form = input.closest('form');
+                    if (form) form.submit();
+                    
+                    resolve();
+                }, 300);
+            }
+        };
+        
+        escribir();
+    });
+}
+
 async function analizarConGemini(base64Image) {
-    // Remover prefijo data:image/png;base64,
     const base64Data = base64Image.replace(/^data:image\/png;base64,/, '');
     
     const prompt = `Analiza esta imagen de resultados de búsqueda de Walmart México.
@@ -111,7 +175,6 @@ async function analizarConGemini(base64Image) {
     const data = await response.json();
     const texto = data.candidates[0].content.parts[0].text;
     
-    // Extraer JSON de la respuesta
     try {
         const jsonMatch = texto.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
