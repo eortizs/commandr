@@ -1,4 +1,4 @@
-const { firefox } = require('playwright');
+const { chromium } = require('playwright');
 const fs = require('fs-extra');
 const path = require('path');
 
@@ -10,10 +10,11 @@ const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/
 async function scrapeWalmart(producto) {
     console.log(`🚀 Iniciando scraping de Walmart para: ${producto}`);
     
-    // Lanzar Firefox (menos detectable)
-    const browser = await firefox.launch({
+    // Lanzar Chrome real del sistema
+    const browser = await chromium.launch({
         headless: false,
-        args: ['--width=1366', '--height=768']
+        channel: 'chrome', // Usa Chrome instalado en el sistema
+        args: ['--window-size=1366,768']
     });
     
     try {
