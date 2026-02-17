@@ -59,8 +59,11 @@ async function iniciarBusqueda() {
         status.textContent = `✅ ${productos.length} productos encontrados`;
         mostrarResultados(productos);
         
-        // 8. Descargar JSON
-        descargarJSON(producto, productos);
+        // 8. Guardar resultados en formato homologado
+        status.textContent = '💾 Guardando...';
+        const resultadosGuardados = await guardarResultado(producto, productos);
+        
+        status.textContent = `✅ ${productos.length} productos guardados`;
         
     } catch (error) {
         status.textContent = `❌ Error: ${error.message}`;
@@ -215,21 +218,61 @@ function mostrarResultados(productos) {
     `).join('');
 }
 
-function descargarJSON(producto, productos) {
+async function guardarResultado(producto, productos) {
+    const fecha = new Date().toISOString().split('T')[0];
+    const outputDir = '/home/marc/lab/scraper/extension/commandr/price-scraper/resultados';
+    
+    // Crear directorio si no existe
+    try {
+        await chrome.downloads.download({
+            url: 'data:text/plain,',
+            filename: 'walmart-temp.txt'
+        });
+    } catch (e) {}
+    
+    // Formato homologado con el scraper de Soriana
+    const resultadosFormateados = productos.map(p => ({
+        tienda: 'Walmart',
+        producto: producto,
+        nombre: p.nombre,
+        precio: p.precio,
+        fecha: fecha,
+        url: 'https://www.walmart.com.mx/buscar?q=' + encodeURIComponent(producto)
+    }));
+    
+    // Descargar JSON
     const data = {
         tienda: 'Walmart',
-        producto,
-        fecha: new Date().toISOString(),
-        productos
+        producto: producto,
+        fecha: fecha,
+        productos: resultadosFormateados
     };
     
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     
-    chrome.downloads.download({
+    await chrome.downloads.download({
         url: url,
-        filename: `walmart-${producto}-${Date.now()}.json`
+        filename: `walmart-${producto}-${fecha}.json`
     });
+    
+    // También crear CSV en formato homologado
+    if (resultadosFormateados.length > 0) {
+        const headers = 'tienda,producto,nombre,precio,fecha,url\n';
+        const rows = resultadosFormateados.map(r => 
+            `"${r.tienda}","${r.producto}","${r.nombre}","${r.precio}","${r.fecha}","${r.url}"`
+        ).join('\n');
+        
+        const csvBlob = new Blob([headers + rows], { type: 'text/csv' });
+        const csvUrl = URL.createObjectURL(csvBlob);
+        
+        await chrome.downloads.download({
+            url: csvUrl,
+            filename: `walmart-${producto}-${fecha}.csv`
+        });
+    }
+    
+    return resultadosFormateados;
 }
 
 function esperar(ms) {
