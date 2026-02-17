@@ -1,7 +1,7 @@
 // popup.js - Versión autónoma que hace TODO
 
 const GEMINI_API_KEY = 'AIzaSyAwRhyZqvgZ5e5I4e-qsEyolssrJG97_VM';
-const GEMINI_MODEL = 'gemini-2.0-flash-lite-preview-02-05';
+const GEMINI_MODEL = 'gemini-flash-lite-latest';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 document.getElementById('btnBuscar').addEventListener('click', iniciarBusqueda);
