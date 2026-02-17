@@ -43,12 +43,12 @@ async function buscarTodosEnSecuencia() {
         actualizarProgreso(i + 1, productos.length, producto);
         
         try {
-            const resultado = await buscarProducto(producto);
+            const resultado = await buscarProducto(producto, false); // No guardar individual
             if (resultado && resultado.length > 0) {
                 resultadosTotales.push(...resultado);
             }
             
-            // Esperar entre búsquedas (para no ser detectado)
+            // Esperar entre búsquedas
             if (i < productos.length - 1) {
                 actualizarStatus(`⏳ Esperando antes de siguiente producto...`);
                 await esperar(5000 + Math.random() * 5000);
@@ -59,9 +59,13 @@ async function buscarTodosEnSecuencia() {
         }
     }
     
-    // Guardar todos los resultados
+    // Guardar consolidado al final
     if (resultadosTotales.length > 0) {
+        actualizarStatus(`💾 Guardando consolidado con ${resultadosTotales.length} productos...`);
         await guardarResultado('todos-los-productos', resultadosTotales);
+        
+        // También descargar JSON consolidado único
+        await descargarConsolidadoFinal(resultadosTotales, productos);
     }
     
     actualizarStatus(`✅ Completado: ${resultadosTotales.length} productos de ${productos.length} búsquedas`);
@@ -71,7 +75,45 @@ async function buscarTodosEnSecuencia() {
     btnBuscarTodos.disabled = false;
 }
 
-async function buscarProducto(producto) {
+async function descargarConsolidadoFinal(productos, productosBuscados) {
+    const fecha = new Date().toISOString().split('T')[0];
+    const timestamp = Date.now();
+    
+    // JSON consolidado
+    const data = {
+        tienda: 'Walmart',
+        fecha: fecha,
+        productosBuscados: productosBuscados,
+        totalProductos: productos.length,
+        productos: productos
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    await chrome.downloads.download({
+        url: url,
+        filename: `walmart-consolidado-${fecha}-${timestamp}.json`
+    });
+    
+    // CSV consolidado
+    if (productos.length > 0) {
+        const headers = 'tienda,producto,nombre,precio,fecha,url\n';
+        const rows = productos.map(r => 
+            `"${r.tienda}","${r.producto}","${r.nombre}","${r.precio}","${r.fecha}","${r.url}"`
+        ).join('\n');
+        
+        const csvBlob = new Blob([headers + rows], { type: 'text/csv' });
+        const csvUrl = URL.createObjectURL(csvBlob);
+        
+        await chrome.downloads.download({
+            url: csvUrl,
+            filename: `walmart-consolidado-${fecha}-${timestamp}.csv`
+        });
+    }
+}
+
+async function buscarProducto(producto, guardarIndividual = true) {
     actualizarStatus(`🚀 Buscando: ${producto}`);
     limpiarResultados();
     
@@ -109,11 +151,11 @@ async function buscarProducto(producto) {
         actualizarStatus(`🤖 Analizando con Gemini...`);
         const productos = await analizarConGemini(screenshot);
         
-        // 7. Guardar
-        if (productos.length > 0) {
+        // 7. Guardar individual si se solicita
+        if (guardarIndividual && productos.length > 0) {
             actualizarStatus(`💾 Guardando ${productos.length} resultados...`);
             await guardarResultado(producto, productos);
-        } else {
+        } else if (productos.length === 0) {
             actualizarStatus(`⚠️ No se encontraron productos para "${producto}"`);
         }
         
