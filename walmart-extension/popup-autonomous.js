@@ -4,34 +4,88 @@ const GEMINI_API_KEY = 'AIzaSyAwRhyZqvgZ5e5I4e-qsEyolssrJG97_VM';
 const GEMINI_MODEL = 'gemini-flash-lite-latest';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-document.getElementById('btnBuscar').addEventListener('click', iniciarBusqueda);
+// Event listeners
+document.getElementById('btnBuscar').addEventListener('click', () => {
+    const productos = parsearProductos();
+    if (productos.length > 0) {
+        buscarProducto(productos[0]);
+    }
+});
 
-async function iniciarBusqueda() {
-    const producto = document.getElementById('producto').value.trim();
-    if (!producto) return;
+document.getElementById('btnBuscarTodos').addEventListener('click', buscarTodosEnSecuencia);
+
+function parsearProductos() {
+    const texto = document.getElementById('productos').value;
+    return texto
+        .split(/[\n,]+/)
+        .map(p => p.trim())
+        .filter(p => p.length > 0);
+}
+
+async function buscarTodosEnSecuencia() {
+    const productos = parsearProductos();
     
-    const btn = document.getElementById('btnBuscar');
-    const status = document.getElementById('status');
-    const resultados = document.getElementById('resultados');
+    if (productos.length === 0) {
+        actualizarStatus('❌ Ingresa al menos un producto');
+        return;
+    }
     
-    btn.disabled = true;
-    status.textContent = '🌐 Abriendo Walmart...';
-    resultados.innerHTML = '';
+    const btnBuscar = document.getElementById('btnBuscar');
+    const btnBuscarTodos = document.getElementById('btnBuscarTodos');
+    
+    btnBuscar.disabled = true;
+    btnBuscarTodos.disabled = true;
+    
+    const resultadosTotales = [];
+    
+    for (let i = 0; i < productos.length; i++) {
+        const producto = productos[i];
+        actualizarProgreso(i + 1, productos.length, producto);
+        
+        try {
+            const resultado = await buscarProducto(producto);
+            if (resultado && resultado.length > 0) {
+                resultadosTotales.push(...resultado);
+            }
+            
+            // Esperar entre búsquedas (para no ser detectado)
+            if (i < productos.length - 1) {
+                actualizarStatus(`⏳ Esperando antes de siguiente producto...`);
+                await esperar(5000 + Math.random() * 5000);
+            }
+        } catch (error) {
+            console.error(`Error buscando ${producto}:`, error);
+            actualizarStatus(`❌ Error con ${producto}: ${error.message}`);
+        }
+    }
+    
+    // Guardar todos los resultados
+    if (resultadosTotales.length > 0) {
+        await guardarResultado('todos-los-productos', resultadosTotales);
+    }
+    
+    actualizarStatus(`✅ Completado: ${resultadosTotales.length} productos de ${productos.length} búsquedas`);
+    mostrarResultados(resultadosTotales);
+    
+    btnBuscar.disabled = false;
+    btnBuscarTodos.disabled = false;
+}
+
+async function buscarProducto(producto) {
+    actualizarStatus(`🚀 Buscando: ${producto}`);
+    limpiarResultados();
     
     try {
         // 1. Obtener pestaña actual
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         
-        // 2. Navegar a Walmart en la pestaña actual
-        status.textContent = '🌐 Navegando a Walmart...';
+        // 2. Navegar a Walmart
+        actualizarStatus(`🌐 Navegando a Walmart...`);
         await chrome.tabs.update(tab.id, { url: 'https://www.walmart.com.mx/' });
-        
-        // 3. Esperar carga
-        status.textContent = '⏳ Cargando página...';
         await esperar(6000);
         
-        // 3. Ejecutar búsqueda en la pestaña
-        status.textContent = '⌨️ Buscando...';
+        // 3. Buscar producto
+        actualizarStatus(`⌨️ Buscando "${producto}"...`);
         await chrome.scripting.executeScript({
             target: { tabId: tab.id },
             func: buscarEnPagina,
@@ -39,11 +93,11 @@ async function iniciarBusqueda() {
         });
         
         // 4. Esperar resultados
-        status.textContent = '⏳ Esperando resultados...';
+        actualizarStatus(`⏳ Esperando resultados...`);
         await esperar(10000);
         
-        // 5. Tomar screenshot
-        status.textContent = '📸 Capturando...';
+        // 5. Screenshot
+        actualizarStatus(`📸 Capturando...`);
         await chrome.tabs.update(tab.id, { active: true });
         await esperar(2000);
         
@@ -51,26 +105,45 @@ async function iniciarBusqueda() {
             format: 'png'
         });
         
-        // 6. Analizar con Gemini
-        status.textContent = '🤖 Analizando...';
+        // 6. Analizar
+        actualizarStatus(`🤖 Analizando con Gemini...`);
         const productos = await analizarConGemini(screenshot);
         
-        // 7. Mostrar resultados
-        status.textContent = `✅ ${productos.length} productos encontrados`;
-        mostrarResultados(productos);
+        // 7. Guardar
+        if (productos.length > 0) {
+            actualizarStatus(`💾 Guardando ${productos.length} resultados...`);
+            await guardarResultado(producto, productos);
+        } else {
+            actualizarStatus(`⚠️ No se encontraron productos para "${producto}"`);
+        }
         
-        // 8. Guardar resultados en formato homologado
-        status.textContent = '💾 Guardando...';
-        const resultadosGuardados = await guardarResultado(producto, productos);
-        
-        status.textContent = `✅ ${productos.length} productos guardados`;
+        return productos;
         
     } catch (error) {
-        status.textContent = `❌ Error: ${error.message}`;
+        actualizarStatus(`❌ Error: ${error.message}`);
         console.error(error);
-    } finally {
-        btn.disabled = false;
+        return [];
     }
+}
+
+function actualizarStatus(mensaje) {
+    document.getElementById('status').textContent = mensaje;
+    console.log(mensaje);
+}
+
+function actualizarProgreso(actual, total, productoActual) {
+    const progress = document.getElementById('progress');
+    progress.innerHTML = `
+        <div>📊 Progreso: ${actual} de ${total}</div>
+        <div>🔍 Actual: ${productoActual}</div>
+        <div style="margin-top: 5px; background: #ddd; height: 20px; border-radius: 10px; overflow: hidden;">
+            <div style="width: ${(actual/total)*100}%; background: #0071ce; height: 100%;"></div>
+        </div>
+    `;
+}
+
+function limpiarResultados() {
+    document.getElementById('resultados').innerHTML = '';
 }
 
 // Función que se ejecuta en la página de Walmart
@@ -143,10 +216,7 @@ function buscarEnPagina(producto) {
 
 async function analizarConGemini(base64Image) {
     try {
-        // La imagen ya viene como data URL desde chrome.tabs.captureVisibleTab
         const base64Data = base64Image.replace(/^data:image\/png;base64,/, '');
-        
-        console.log('Enviando a Gemini...');
         
         const prompt = `Analiza esta imagen de resultados de búsqueda de Walmart México.
 Extrae los productos con sus precios visibles.
@@ -174,16 +244,12 @@ Si no hay productos visibles o hay un error en la página, responde: []`;
             })
         });
         
-        console.log('Respuesta Gemini status:', response.status);
-        
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Error Gemini:', errorText);
             throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
         }
         
         const data = await response.json();
-        console.log('Respuesta Gemini:', data);
         
         if (!data.candidates || !data.candidates[0]) {
             throw new Error('Respuesta de Gemini sin candidates');
@@ -191,7 +257,6 @@ Si no hay productos visibles o hay un error en la página, responde: []`;
         
         const texto = data.candidates[0].content.parts[0].text;
         
-        // Extraer JSON
         try {
             const jsonMatch = texto.match(/\[[\s\S]*\]/);
             if (jsonMatch) {
@@ -208,29 +273,10 @@ Si no hay productos visibles o hay un error en la página, responde: []`;
     }
 }
 
-function mostrarResultados(productos) {
-    const div = document.getElementById('resultados');
-    div.innerHTML = productos.map((p, i) => `
-        <div style="padding: 10px; border-bottom: 1px solid #eee;">
-            <div style="font-weight: bold;">${i + 1}. ${p.nombre}</div>
-            <div style="color: #0071ce;">${p.precio}</div>
-        </div>
-    `).join('');
-}
-
 async function guardarResultado(producto, productos) {
     const fecha = new Date().toISOString().split('T')[0];
-    const outputDir = '/home/marc/lab/scraper/extension/commandr/price-scraper/resultados';
     
-    // Crear directorio si no existe
-    try {
-        await chrome.downloads.download({
-            url: 'data:text/plain,',
-            filename: 'walmart-temp.txt'
-        });
-    } catch (e) {}
-    
-    // Formato homologado con el scraper de Soriana
+    // Formato homologado
     const resultadosFormateados = productos.map(p => ({
         tienda: 'Walmart',
         producto: producto,
@@ -256,7 +302,7 @@ async function guardarResultado(producto, productos) {
         filename: `walmart-${producto}-${fecha}.json`
     });
     
-    // También crear CSV en formato homologado
+    // CSV
     if (resultadosFormateados.length > 0) {
         const headers = 'tienda,producto,nombre,precio,fecha,url\n';
         const rows = resultadosFormateados.map(r => 
@@ -273,6 +319,36 @@ async function guardarResultado(producto, productos) {
     }
     
     return resultadosFormateados;
+}
+
+function mostrarResultados(productos) {
+    const div = document.getElementById('resultados');
+    
+    if (productos.length === 0) {
+        div.innerHTML = '<div>No se encontraron productos</div>';
+        return;
+    }
+    
+    // Agrupar por producto buscado
+    const porProducto = {};
+    productos.forEach(p => {
+        const key = p.producto || 'Desconocido';
+        if (!porProducto[key]) porProducto[key] = [];
+        porProducto[key].push(p);
+    });
+    
+    let html = '';
+    Object.entries(porProducto).forEach(([prod, items]) => {
+        html += `<h3>${prod} (${items.length} resultados)</h3>`;
+        html += items.map((p, i) => `
+            <div class="producto-item">
+                <div style="font-weight: bold;">${i + 1}. ${p.nombre}</div>
+                <div style="color: #0071ce;">${p.precio}</div>
+            </div>
+        `).join('');
+    });
+    
+    div.innerHTML = html;
 }
 
 function esperar(ms) {
