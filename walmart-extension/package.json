@@ -1,0 +1,15 @@
+{
+  "name": "walmart-price-scraper",
+  "version": "1.0.0",
+  "description": "Scraper de precios de Walmart México con Puppeteer y Gemini Vision",
+  "main": "scraper-puppeteer.js",
+  "scripts": {
+    "scrape": "node scraper-puppeteer.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "fs-extra": "^11.2.0"
+  }
+}
