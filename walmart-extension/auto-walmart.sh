@@ -6,16 +6,23 @@ set -e
 
 # Configuración
 PRODUCTOS="${1:-cebolla blanca, jitomate saladet, aguacate hass}"
-CHROME_WINDOW_NAME="Walmart"
-EXTENSION_ICON_X=1100  # Ajustar según posición del icono en tu barra
-EXTENSION_ICON_Y=75    # Ajustar según posición del icono en tu barra
 
 echo "🚀 Automatización Walmart Scraper"
 echo "📦 Productos: $PRODUCTOS"
 
+# Coordenadas (proporcionadas por el usuario)
+BOTON_EXTENSIONES_X=1384
+BOTON_EXTENSIONES_Y=94
+BOTON_WALMART_X=1235
+BOTON_WALMART_Y=482
+AREA_TEXT_X=1070
+AREA_TEXT_Y=223
+BOTON_BUSCAR_X=1108
+BOTON_BUSCAR_Y=347
+
 # 1. Abrir Chrome con Walmart si no está abierto
 echo "🌐 Verificando Chrome..."
-if ! xdotool search --name "$CHROME_WINDOW_NAME" > /dev/null 2>&1; then
+if ! xdotool search --name "Walmart" > /dev/null 2>&1; then
     echo "🌐 Abriendo Chrome..."
     google-chrome "https://www.walmart.com.mx/" &
     sleep 5
@@ -23,29 +30,34 @@ fi
 
 # 2. Activar ventana de Chrome
 echo "🖱️ Activando Chrome..."
-WINDOW_ID=$(xdotool search --name "$CHROME_WINDOW_NAME" | head -1)
+WINDOW_ID=$(xdotool search --name "Walmart" | head -1)
 xdotool windowactivate "$WINDOW_ID"
 sleep 1
 
-# 3. Click en el icono de la extensión
-echo "🔌 Abriendo extensión..."
-xdotool mousemove $EXTENSION_ICON_X $EXTENSION_ICON_Y
+# 3. Click en botón de extensiones (rompecabezas)
+echo "🔌 Abriendo menú de extensiones..."
+xdotool mousemove $BOTON_EXTENSIONES_X $BOTON_EXTENSIONES_Y
+xdotool click 1
+sleep 1
+
+# 4. Click en extensión Walmart
+echo "🔌 Abriendo extensión Walmart..."
+xdotool mousemove $BOTON_WALMART_X $BOTON_WALMART_Y
 xdotool click 1
 sleep 2
 
-# 4. Limpiar campo y escribir productos
+# 5. Click en área de texto y escribir productos
 echo "⌨️ Insertando productos..."
-xdotool key ctrl+a  # Seleccionar todo
-xdotool key Delete   # Borrar
+xdotool mousemove $AREA_TEXT_X $AREA_TEXT_Y
+xdotool click 1
+xdotool key ctrl+a
+xdotool key Delete
 xdotool type "$PRODUCTOS"
 sleep 1
 
-# 5. Click en botón "Buscar Todos en Secuencia"
+# 6. Click en botón "Buscar Todos en Secuencia"
 echo "🔍 Iniciando búsqueda..."
-# Coordenadas del botón (ajustar según tu pantalla)
-BOTON_X=200
-BOTON_Y=250
-xdotool mousemove $BOTON_X $BOTON_Y
+xdotool mousemove $BOTON_BUSCAR_X $BOTON_BUSCAR_Y
 xdotool click 1
 
 echo "✅ Automatización iniciada"
