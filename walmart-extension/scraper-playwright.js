@@ -1,4 +1,4 @@
-const { chromium } = require('playwright');
+const { firefox } = require('playwright');
 const fs = require('fs-extra');
 const path = require('path');
 
@@ -10,15 +10,10 @@ const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/
 async function scrapeWalmart(producto) {
     console.log(`🚀 Iniciando scraping de Walmart para: ${producto}`);
     
-    // Lanzar navegador con stealth
-    const browser = await chromium.launch({
-        headless: false, // Visible para evitar detección
-        args: [
-            '--disable-blink-features=AutomationControlled',
-            '--disable-web-security',
-            '--disable-features=IsolateOrigins,site-per-process',
-            '--window-size=1366,768'
-        ]
+    // Lanzar Firefox (menos detectable)
+    const browser = await firefox.launch({
+        headless: false,
+        args: ['--width=1366', '--height=768']
     });
     
     try {
