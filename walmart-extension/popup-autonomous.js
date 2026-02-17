@@ -19,15 +19,16 @@ async function iniciarBusqueda() {
     resultados.innerHTML = '';
     
     try {
-        // 1. Crear nueva pestaña
-        const tab = await chrome.tabs.create({
-            url: 'https://www.walmart.com.mx/',
-            active: true
-        });
+        // 1. Obtener pestaña actual
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         
-        // 2. Esperar carga
+        // 2. Navegar a Walmart en la pestaña actual
+        status.textContent = '🌐 Navegando a Walmart...';
+        await chrome.tabs.update(tab.id, { url: 'https://www.walmart.com.mx/' });
+        
+        // 3. Esperar carga
         status.textContent = '⏳ Cargando página...';
-        await esperar(5000);
+        await esperar(6000);
         
         // 3. Ejecutar búsqueda en la pestaña
         status.textContent = '⌨️ Buscando...';
