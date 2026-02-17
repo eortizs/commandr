@@ -35,38 +35,56 @@ async function iniciarBusqueda() {
         // Obtener tab activa
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         
-        // PASO 1: Ir a página inicial de Walmart
-        await chrome.tabs.update(tab.id, { url: 'https://www.walmart.com.mx/' });
+        // PASO 1: Crear nueva pestaña con Walmart (más limpio)
+        const newTab = await chrome.tabs.create({ 
+            url: 'https://www.walmart.com.mx/',
+            active: true
+        });
         
-        mostrarStatus('⏳ Esperando carga de página...', 'info');
-        await esperar(5000);
+        mostrarStatus('⏳ Esperando carga...', 'info');
+        await esperar(8000); // Más tiempo
         
-        // PASO 2: Simular búsqueda humana
-        mostrarStatus('⌨️ Escribiendo búsqueda...', 'info');
+        // PASO 2: Inyectar script de búsqueda humana
+        mostrarStatus('⌨️ Simulando búsqueda...', 'info');
+        
+        // Esperar a que la página esté completamente lista
         await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
+            target: { tabId: newTab.id },
+            func: esperarCargaPagina
+        });
+        
+        await esperar(2000);
+        
+        // Escribir búsqueda
+        await chrome.scripting.executeScript({
+            target: { tabId: newTab.id },
             func: simularBusquedaHumana,
             args: [producto]
         });
         
         mostrarStatus('⏳ Esperando resultados...', 'info');
-        await esperar(8000);
+        await esperar(10000); // Más tiempo para resultados
         
         // PASO 3: Tomar screenshot
-        mostrarStatus('📸 Capturando pantalla...', 'info');
-        const screenshot = await chrome.tabs.captureVisibleTab(null, { format: 'png' });
+        mostrarStatus('📸 Capturando...', 'info');
         
-        // PASO 4: Analizar con Gemini
-        mostrarStatus('🤖 Analizando con Gemini...', 'info');
+        // Activar la pestaña antes de screenshot
+        await chrome.tabs.update(newTab.id, { active: true });
+        await esperar(1000);
+        
+        const screenshot = await chrome.tabs.captureVisibleTab(newTab.windowId, { format: 'png' });
+        
+        // PASO 4: Analizar
+        mostrarStatus('🤖 Analizando...', 'info');
         const productos = await analizarConGemini(screenshot);
         
         if (productos.length > 0) {
             resultados = productos;
             mostrarResultados(productos);
-            mostrarStatus(`✅ ${productos.length} productos encontrados`, 'success');
+            mostrarStatus(`✅ ${productos.length} productos`, 'success');
             btnExportar.style.display = 'block';
         } else {
-            mostrarStatus('⚠️ No se encontraron productos', 'error');
+            mostrarStatus('⚠️ Sin productos', 'error');
         }
         
     } catch (error) {
@@ -77,58 +95,146 @@ async function iniciarBusqueda() {
     }
 }
 
-// Función que simula búsqueda humana en la página
+// Esperar a que la página cargue completamente
+function esperarCargaPagina() {
+    return new Promise((resolve) => {
+        if (document.readyState === 'complete') {
+            resolve();
+        } else {
+            window.addEventListener('load', resolve);
+        }
+    });
+}
+
+// Simular búsqueda humana realista
 function simularBusquedaHumana(producto) {
     return new Promise((resolve) => {
-        // Buscar el input de búsqueda
-        const input = document.querySelector('input[data-automation-id="header-input-search"]') ||
-                      document.querySelector('input[placeholder*="Buscar"]') ||
-                      document.querySelector('input[type="search"]') ||
-                      document.querySelector('input[name="q"]');
+        // Buscar input con múltiples selectores
+        const selectores = [
+            'input[data-automation-id="header-input-search"]',
+            'input[placeholder*="Buscar"]',
+            'input[type="search"]',
+            'input[name="q"]',
+            'input[aria-label*="Buscar"]',
+            'input.search-bar',
+            'form input'
+        ];
+        
+        let input = null;
+        for (const selector of selectores) {
+            input = document.querySelector(selector);
+            if (input) break;
+        }
         
         if (!input) {
-            console.error('No se encontró el input de búsqueda');
+            console.error('Input no encontrado');
+            // Intentar con cualquier input visible
+            const inputs = document.querySelectorAll('input');
+            for (const inp of inputs) {
+                if (inp.offsetParent !== null && (inp.placeholder || '').toLowerCase().includes('buscar')) {
+                    input = inp;
+                    break;
+                }
+            }
+        }
+        
+        if (!input) {
+            console.error('No se encontró input de búsqueda');
             resolve();
             return;
         }
         
-        // Click en el input
-        input.click();
-        input.focus();
+        console.log('Input encontrado:', input);
         
-        // Limpiar y escribir el producto letra por letra (como humano)
-        input.value = '';
-        let i = 0;
-        const escribir = () => {
-            if (i < producto.length) {
-                input.value += producto[i];
-                i++;
-                // Disparar eventos de input
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-                setTimeout(escribir, 50 + Math.random() * 100); // Delay aleatorio entre letras
-            } else {
-                // Presionar ENTER
-                setTimeout(() => {
-                    const enterEvent = new KeyboardEvent('keydown', {
-                        key: 'Enter',
-                        code: 'Enter',
-                        keyCode: 13,
-                        which: 13,
-                        bubbles: true
-                    });
-                    input.dispatchEvent(enterEvent);
-                    
-                    // También intentar con submit del form
-                    const form = input.closest('form');
-                    if (form) form.submit();
-                    
-                    resolve();
-                }, 300);
-            }
-        };
+        // Scroll al input
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
         
-        escribir();
+        setTimeout(() => {
+            // Click con eventos completos
+            const clickEvent = new MouseEvent('click', {
+                bubbles: true,
+                cancelable: true,
+                view: window
+            });
+            input.dispatchEvent(clickEvent);
+            input.focus();
+            
+            // Seleccionar todo y borrar
+            input.select();
+            input.value = '';
+            
+            // Disparar eventos de limpieza
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            
+            // Escribir letra por letra con delays variables
+            let i = 0;
+            const escribirLetra = () => {
+                if (i < producto.length) {
+                    const char = producto[i];
+                    input.value += char;
+                    
+                    // Eventos de input
+                    input.dispatchEvent(new InputEvent('input', {
+                        bubbles: true,
+                        inputType: 'insertText',
+                        data: char
+                    }));
+                    
+                    i++;
+                    // Delay aleatorio entre 100-300ms (más humano)
+                    setTimeout(escribirLetra, 100 + Math.random() * 200);
+                } else {
+                    // Terminó de escribir, ahora ENTER
+                    setTimeout(() => {
+                        // Evento keydown
+                        input.dispatchEvent(new KeyboardEvent('keydown', {
+                            key: 'Enter',
+                            code: 'Enter',
+                            keyCode: 13,
+                            which: 13,
+                            bubbles: true
+                        }));
+                        
+                        // Evento keypress
+                        input.dispatchEvent(new KeyboardEvent('keypress', {
+                            key: 'Enter',
+                            code: 'Enter',
+                            charCode: 13,
+                            bubbles: true
+                        }));
+                        
+                        // Evento keyup
+                        input.dispatchEvent(new KeyboardEvent('keyup', {
+                            key: 'Enter',
+                            code: 'Enter',
+                            keyCode: 13,
+                            which: 13,
+                            bubbles: true
+                        }));
+                        
+                        // Intentar submit del form
+                        const form = input.closest('form');
+                        if (form) {
+                            form.dispatchEvent(new Event('submit', { bubbles: true }));
+                            setTimeout(() => form.submit(), 100);
+                        }
+                        
+                        // Click en botón de búsqueda si existe
+                        const btn = document.querySelector('button[type="submit"]') ||
+                                   document.querySelector('[data-automation-id*="search"]') ||
+                                   document.querySelector('button[aria-label*="Buscar"]');
+                        if (btn) {
+                            setTimeout(() => btn.click(), 200);
+                        }
+                        
+                        resolve();
+                    }, 500 + Math.random() * 500);
+                }
+            };
+            
+            escribirLetra();
+        }, 500);
     });
 }
 
@@ -146,7 +252,7 @@ async function analizarConGemini(base64Image) {
       }
     ]
     
-    Si no hay productos visibles, responde: []`;
+    Si no hay productos visibles o hay error 404, responde: []`;
     
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
         method: 'POST',
