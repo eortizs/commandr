@@ -24,8 +24,8 @@ async function scrapeWalmart(producto) {
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--window-size=1280,900'
-        ],
-        executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium-browser'
+        ]
+        // Puppeteer usará su Chromium descargado automáticamente
     });
     
     try {
