@@ -71,11 +71,11 @@ async function testTienda(tiendaKey) {
                 const products = document.querySelectorAll('[class*="product"]').length;
                 const dataTestid = document.querySelectorAll('[data-testid]').length;
                 
-                // Buscar precios
+                // Buscar precios - span con $ y números (incluye formatos como $21.90 M.N.)
                 const spans = Array.from(document.querySelectorAll('span'));
                 const precios = spans
                     .map(s => s.textContent.trim())
-                    .filter(t => t.match(/^\$[\d,]+\.?\d*$/))
+                    .filter(t => t.match(/\$[\d,]+\.?\d*/))
                     .slice(0, 5);
                 
                 return { titulo, h1, articles, products, dataTestid, precios };
