@@ -1,15 +1,14 @@
 {
   "name": "walmart-price-scraper",
   "version": "1.0.0",
-  "description": "Scraper de precios de Walmart México con Playwright y Gemini Vision",
-  "main": "scraper-playwright.js",
+  "description": "Scraper de precios de Walmart México usando Chrome real + gnome-screenshot",
+  "main": "scraper-real-chrome.js",
   "scripts": {
-    "scrape": "node scraper-playwright.js",
-    "postinstall": "echo 'Chrome debe estar instalado en el sistema'",
+    "scrape": "node scraper-real-chrome.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "playwright": "^1.41.0",
+    "puppeteer-core": "^21.11.0",
     "fs-extra": "^11.2.0"
   }
 }
