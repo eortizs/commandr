@@ -1,0 +1,16 @@
+{
+  "name": "price-scraper-banana",
+  "version": "1.0.0",
+  "description": "Scraper de precios para frutas y verduras en tiendas mexicanas",
+  "main": "scraper.js",
+  "scripts": {
+    "start": "node scraper.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "fs-extra": "^11.1.1"
+  }
+}
