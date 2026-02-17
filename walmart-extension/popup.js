@@ -38,33 +38,23 @@ async function iniciarBusqueda() {
             active: true
         });
         
-        // Esperar a que la página cargue completamente
-        mostrarStatus('⏳ Esperando carga de página...', 'info');
+        // Esperar a que el content script se cargue
+        mostrarStatus('⏳ Esperando carga...', 'info');
+        await esperar(5000);
+        
+        // Esperar a que la página esté lista
         await esperarCargaCompleta(newTab.id);
         
-        mostrarStatus('⌨️ Escribiendo búsqueda...', 'info');
+        mostrarStatus('⌨️ Enviando búsqueda...', 'info');
         
-        // Ejecutar búsqueda con reintentos
-        let intentos = 0;
-        let exito = false;
+        // Enviar mensaje al content script
+        const response = await enviarMensajeConRetry(newTab.id, {
+            action: 'buscar',
+            producto: producto
+        });
         
-        while (intentos < 3 && !exito) {
-            try {
-                await chrome.scripting.executeScript({
-                    target: { tabId: newTab.id },
-                    func: buscarProducto,
-                    args: [producto]
-                });
-                exito = true;
-            } catch (e) {
-                intentos++;
-                console.log(`Intento ${intentos} fallido, reintentando...`);
-                await esperar(2000);
-            }
-        }
-        
-        if (!exito) {
-            throw new Error('No se pudo interactuar con la página');
+        if (!response || !response.success) {
+            throw new Error(response?.error || 'No se pudo realizar la búsqueda');
         }
         
         mostrarStatus('⏳ Esperando resultados...', 'info');
@@ -97,11 +87,29 @@ async function iniciarBusqueda() {
     }
 }
 
-// Esperar a que la pestaña cargue completamente
+// Enviar mensaje con reintentos
+async function enviarMensajeConRetry(tabId, message, maxRetries = 5) {
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            console.log(`Intento ${i + 1} de enviar mensaje...`);
+            const response = await chrome.tabs.sendMessage(tabId, message);
+            console.log('Respuesta recibida:', response);
+            return response;
+        } catch (e) {
+            console.log(`Intento ${i + 1} fallido:`, e.message);
+            if (i < maxRetries - 1) {
+                await esperar(1000);
+            }
+        }
+    }
+    throw new Error('No se pudo comunicar con el content script');
+}
+
+// Esperar a que la pestaña cargue
 async function esperarCargaCompleta(tabId) {
     return new Promise((resolve) => {
         let intentos = 0;
-        const maxIntentos = 30; // 30 segundos máximo
+        const maxIntentos = 20;
         
         const intervalo = setInterval(async () => {
             intentos++;
@@ -110,131 +118,17 @@ async function esperarCargaCompleta(tabId) {
                 const tab = await chrome.tabs.get(tabId);
                 
                 if (tab.status === 'complete') {
-                    // Verificar que la página tenga contenido
-                    try {
-                        const result = await chrome.scripting.executeScript({
-                            target: { tabId: tabId },
-                            func: () => document.readyState
-                        });
-                        
-                        if (result[0].result === 'complete') {
-                            clearInterval(intervalo);
-                            resolve();
-                        }
-                    } catch (e) {
-                        // Aún no está listo
-                    }
+                    clearInterval(intervalo);
+                    resolve();
                 }
             } catch (e) {
-                // Tab no disponible
+                console.error('Error verificando tab:', e);
             }
             
             if (intentos >= maxIntentos) {
                 clearInterval(intervalo);
-                resolve(); // Continuar de todos modos
+                resolve();
             }
-        }, 1000);
-    });
-}
-
-// Función de búsqueda que se ejecuta en la página
-function buscarProducto(producto) {
-    return new Promise((resolve, reject) => {
-        // Buscar input
-        const findInput = () => {
-            const selectores = [
-                'input[data-automation-id="header-input-search"]',
-                'input[placeholder*="Buscar" i]',
-                'input[type="search"]',
-                'input[name="q"]',
-                'input[aria-label*="Buscar" i]',
-                'input.search-bar',
-                'header input',
-                'nav input'
-            ];
-            
-            for (const selector of selectores) {
-                const el = document.querySelector(selector);
-                if (el && el.offsetParent !== null) {
-                    return el;
-                }
-            }
-            
-            // Buscar cualquier input visible con placeholder de búsqueda
-            const inputs = document.querySelectorAll('input');
-            for (const input of inputs) {
-                const placeholder = (input.placeholder || '').toLowerCase();
-                if (placeholder.includes('buscar') && input.offsetParent !== null) {
-                    return input;
-                }
-            }
-            
-            return null;
-        };
-        
-        const input = findInput();
-        
-        if (!input) {
-            console.error('Input no encontrado. HTML:', document.body.innerHTML.substring(0, 500));
-            reject(new Error('Input de búsqueda no encontrado'));
-            return;
-        }
-        
-        console.log('Input encontrado:', input);
-        
-        // Scroll suave al input
-        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
-        setTimeout(() => {
-            // Focus y click
-            input.focus();
-            input.click();
-            
-            // Limpiar
-            input.value = '';
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            
-            // Escribir con delays
-            let i = 0;
-            const typeChar = () => {
-                if (i < producto.length) {
-                    input.value += producto[i];
-                    
-                    // Eventos
-                    input.dispatchEvent(new InputEvent('input', {
-                        bubbles: true,
-                        inputType: 'insertText',
-                        data: producto[i]
-                    }));
-                    
-                    i++;
-                    setTimeout(typeChar, 150 + Math.random() * 200);
-                } else {
-                    // Presionar Enter
-                    setTimeout(() => {
-                        const enterEvent = new KeyboardEvent('keydown', {
-                            key: 'Enter',
-                            code: 'Enter',
-                            keyCode: 13,
-                            which: 13,
-                            bubbles: true
-                        });
-                        input.dispatchEvent(enterEvent);
-                        
-                        // Submit form
-                        const form = input.closest('form');
-                        if (form) {
-                            setTimeout(() => {
-                                form.dispatchEvent(new Event('submit', { bubbles: true }));
-                            }, 100);
-                        }
-                        
-                        resolve();
-                    }, 500);
-                }
-            };
-            
-            typeChar();
         }, 1000);
     });
 }
