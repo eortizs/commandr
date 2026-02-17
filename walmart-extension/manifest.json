@@ -14,7 +14,7 @@
     "https://walmart.com.mx/*"
   ],
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup-autonomous.html"
   },
   "background": {
     "service_worker": "background.js"
