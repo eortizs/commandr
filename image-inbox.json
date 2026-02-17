@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2026-02-18T03:16:00Z",
+  "default_model": "gemini-flash-lite-latest",
+  "auto_process": true,
+  "images": [
+    {
+      "id": "file_18",
+      "filename": "file_18---baf68733-e7e4-4ce2-a1e7-1d18cdd29e4e.jpg",
+      "timestamp": "2026-02-18T02:05:00Z",
+      "status": "pending",
+      "mime_type": "image/jpeg",
+      "analysis": null
+    },
+    {
+      "id": "file_19",
+      "filename": "file_19---bbfa40c9-b140-4e91-9df7-97a13c1f9364.jpg",
+      "timestamp": "2026-02-18T03:16:00Z",
+      "status": "pending",
+      "mime_type": "image/jpeg",
+      "analysis": null
+    }
+  ],
+  "settings": {
+    "save_original": true,
+    "save_analysis": true,
+    "default_prompt": "Describe lo que ves en esta imagen con detalle, incluyendo cualquier texto visible.",
+    "output_format": "text"
+  },
+  "api_config": {
+    "provider": "google",
+    "model": "gemini-flash-lite-latest",
+    "requires_key": true
+  }
+}
