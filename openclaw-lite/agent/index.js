@@ -378,21 +378,32 @@ class AgentRunner {
         // Usar fetch nativo de Node.js 18+ o importar node-fetch
         const fetch = globalThis.fetch || require('node-fetch');
         
+        const model = process.env.OPENAI_MODEL || 'gpt-4';
+        const isO1Model = model.startsWith('o1') || model.startsWith('o3');
+        
+        const body = {
+            model: model,
+            messages: [
+                { role: 'system', content: 'Eres OpenClaw Lite, un asistente útil.' },
+                { role: 'user', content: prompt }
+            ],
+            temperature: 0.7
+        };
+        
+        // Usar el parámetro correcto según el modelo
+        if (isO1Model) {
+            body.max_completion_tokens = 2048;
+        } else {
+            body.max_tokens = 2048;
+        }
+        
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                model: process.env.OPENAI_MODEL || 'gpt-4',
-                messages: [
-                    { role: 'system', content: 'Eres OpenClaw Lite, un asistente útil.' },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.7,
-                max_tokens: 2048
-            })
+            body: JSON.stringify(body)
         });
         
         const data = await response.json();
