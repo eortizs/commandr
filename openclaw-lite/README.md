@@ -73,6 +73,54 @@ Response → Usuario
 | **Programación** | `regex` | Validar/extraer texto | `regex.match('\d+', 'abc123')` |
 | **Programación** | `cron` | Programar tareas | `cron.schedule('0 9 * * *', 'tarea')` |
 
+## 📦 Dependencias de Skills
+
+Las skills pueden usar librerías externas:
+
+### Tipos soportados
+
+| Tipo | Ejemplos | Instalación |
+|------|----------|-------------|
+| `npm` | `fluent-ffmpeg`, `axios` | `npm install` |
+| `pip` | `pandas`, `numpy` | Virtualenv automático |
+| `system` | `ffmpeg`, `sox` | Manual (`apt install`) |
+
+### Ejemplos
+
+**Skill con ffmpeg:**
+```javascript
+// skills/user/video-processor/index.js
+const ffmpeg = require('fluent-ffmpeg');
+
+async execute(args) {
+    const [input, output] = args;
+    await new Promise((resolve, reject) => {
+        ffmpeg(input).output(output).on('end', resolve).run();
+    });
+    return 'Video procesado';
+}
+```
+
+**Skill con Python/pandas:**
+```javascript
+// skills/user/data-analyzer/index.js
+async execute(args, tools) {
+    const result = await tools.runPython('data-analyzer', 'analyze.py', args);
+    return result.stdout;
+}
+```
+
+### Instalación automática
+
+```javascript
+// En SKILL.md o package.json
+dependencies: {
+  "npm": ["fluent-ffmpeg"],
+  "pip": ["pandas", "numpy"],
+  "system": ["ffmpeg"]
+}
+```
+
 ## 📝 Memoria
 
 - `memory/MEMORY.md` - Memoria persistente
