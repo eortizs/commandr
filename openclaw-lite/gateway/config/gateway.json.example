@@ -1,0 +1,28 @@
+{
+  "gateway": {
+    "host": "127.0.0.1",
+    "port": 18789,
+    "auth": {
+      "enabled": false,
+      "token": "your-secret-token-here"
+    }
+  },
+  "agent": {
+    "llm": {
+      "provider": "openai",
+      "model": "gpt-4",
+      "apiKey": "${OPENAI_API_KEY}"
+    },
+    "maxTokens": 2048,
+    "temperature": 0.7
+  },
+  "whatsapp": {
+    "enabled": true,
+    "autoReconnect": true,
+    "sessionTimeout": 30000
+  },
+  "memory": {
+    "autoSave": true,
+    "maxHistory": 100
+  }
+}

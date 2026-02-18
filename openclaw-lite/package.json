@@ -1,0 +1,35 @@
+{
+  "name": "openclaw-lite",
+  "version": "1.0.0",
+  "description": "OpenClaw simplificado - Solo WhatsApp, estructura core",
+  "main": "gateway/index.js",
+  "scripts": {
+    "start": "node gateway/index.js",
+    "dev": "nodemon gateway/index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.6.0",
+    "pino": "^8.17.0",
+    "qrcode-terminal": "^0.12.0",
+    "ws": "^8.16.0",
+    "uuid": "^9.0.0",
+    "fs-extra": "^11.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0",
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "ai",
+    "assistant",
+    "openclaw"
+  ],
+  "author": "",
+  "license": "MIT"
+}
