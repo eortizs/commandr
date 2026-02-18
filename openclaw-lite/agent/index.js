@@ -389,6 +389,18 @@ class AgentRunner {
         });
         
         const data = await response.json();
+        
+        // Manejar errores de la API
+        if (data.error) {
+            throw new Error(`OpenAI API Error: ${data.error.message}`);
+        }
+        
+        // Verificar estructura de respuesta
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            console.error('Respuesta inesperada:', JSON.stringify(data, null, 2));
+            throw new Error('Respuesta de API inválida');
+        }
+        
         return {
             type: 'llm-response',
             content: data.choices[0].message.content,
@@ -418,6 +430,18 @@ class AgentRunner {
         });
         
         const data = await response.json();
+        
+        // Manejar errores de la API
+        if (data.error) {
+            throw new Error(`OpenRouter API Error: ${data.error.message}`);
+        }
+        
+        // Verificar estructura de respuesta
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            console.error('Respuesta inesperada:', JSON.stringify(data, null, 2));
+            throw new Error('Respuesta de API inválida');
+        }
+        
         return {
             type: 'llm-response',
             content: data.choices[0].message.content,
