@@ -159,17 +159,14 @@ class Gateway {
     }
 
     async handleWhatsAppMessage(msg) {
-        console.log(`   💬 WhatsApp [${msg.from}]: ${msg.body?.substring(0, 50)}...`);
+        console.log(`   💬 WhatsApp [${msg.sender}]: ${msg.body?.substring(0, 50)}...`);
         
         // Enviar al agente para procesar
         const response = await this.agent.processWhatsAppMessage(msg);
         
-        // Responder por WhatsApp (siempre al primer número de whitelist)
-        if (response && this.whatsapp.whitelist.length > 0) {
-            const replyTo = this.whatsapp.whitelist[0].includes('@') 
-                ? this.whatsapp.whitelist[0] 
-                : `${this.whatsapp.whitelist[0]}@s.whatsapp.net`;
-            await this.whatsapp.sendMessage(replyTo, response);
+        // Responder al remitente original
+        if (response) {
+            await this.whatsapp.sendMessage(msg.from, response);
         }
     }
 
