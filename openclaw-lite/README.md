@@ -23,10 +23,14 @@ openclaw-lite/
 # Instalar
 npm install
 
-# Configurar
+# Configurar LLM (OpenAI u OpenRouter)
+export LLM_PROVIDER=openai
 export OPENAI_API_KEY="sk-..."
 
-# Iniciar
+# O usar OpenRouter
+export LLM_PROVIDER=openrouter
+export OPENROUTER_API_KEY="sk-or-v1-..."
+
 npm start
 ```
 

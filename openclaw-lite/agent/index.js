@@ -343,10 +343,87 @@ class AgentRunner {
     async callLLM(prompt, context) {
         console.log('   🤖 Llamando a LLM...');
         
+        const provider = process.env.LLM_PROVIDER || 'openai';
+        const apiKey = process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY;
+        
+        try {
+            let response;
+            
+            switch (provider) {
+                case 'openrouter':
+                    response = await this.callOpenRouter(prompt, context, apiKey);
+                    break;
+                case 'openai':
+                default:
+                    response = await this.callOpenAI(prompt, context, apiKey);
+                    break;
+            }
+            
+            return response;
+        } catch (error) {
+            console.error('   ✗ Error LLM:', error.message);
+            return {
+                type: 'llm-response',
+                content: `Error: ${error.message}`,
+                timestamp: new Date().toISOString()
+            };
+        }
+    }
+
+    async callOpenAI(prompt, context, apiKey) {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: process.env.OPENAI_MODEL || 'gpt-4',
+                messages: [
+                    { role: 'system', content: 'Eres OpenClaw Lite, un asistente útil.' },
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0.7,
+                max_tokens: 2048
+            })
+        });
+        
+        const data = await response.json();
         return {
             type: 'llm-response',
-            content: `Respuesta simulada para: ${prompt.substring(0, 50)}...`,
-            timestamp: new Date().toISOString()
+            content: data.choices[0].message.content,
+            timestamp: new Date().toISOString(),
+            provider: 'openai'
+        };
+    }
+
+    async callOpenRouter(prompt, context, apiKey) {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': process.env.OPENROUTER_REFERER || 'https://openclaw.local',
+                'X-Title': 'OpenClaw Lite'
+            },
+            body: JSON.stringify({
+                model: process.env.OPENROUTER_MODEL || 'anthropic/claude-3.5-sonnet',
+                messages: [
+                    { role: 'system', content: 'Eres OpenClaw Lite, un asistente útil.' },
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0.7,
+                max_tokens: 2048
+            })
+        });
+        
+        const data = await response.json();
+        return {
+            type: 'llm-response',
+            content: data.choices[0].message.content,
+            timestamp: new Date().toISOString(),
+            provider: 'openrouter',
+            model: data.model
         };
     }
 
