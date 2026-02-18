@@ -91,6 +91,25 @@ Verifica:
 - ✅ API keys configuradas
 - ✅ Puertos disponibles
 
+### WhatsApp (Baileys)
+
+OpenClaw Lite usa **Baileys** para conexión con WhatsApp:
+
+```bash
+# Baileys se instala automáticamente con npm install
+npm install
+
+# Al iniciar, se mostrará un QR code
+npm start
+
+# Escanea con: WhatsApp → Configuración → Dispositivos vinculados → Vincular
+```
+
+**Notas:**
+- 📱 Escanea el QR rápidamente (expira en ~20 segundos)
+- 🔒 La sesión se guarda en `memory/sessions/`
+- 🔄 Si cierras sesión, borra `memory/sessions/` para re-vincular
+
 ## 🔌 Arquitectura
 
 ```
