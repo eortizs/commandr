@@ -43,33 +43,68 @@ Responde en formato JSON:
   "current_state": "¿En qué página/paso estamos?",
   "next_action": "Descripción de la siguiente acción a realizar",
   "playwright_code": "Código JavaScript de Playwright para ejecutar (ej: await page.click('button#login'))",
-  "is_complete": true/false,
+  "is_complete": false,
   "reasoning": "Por qué decides esta acción"
 }`;
 
-        // Llamar a Gemini
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-preview-02-05:generateContent?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        { text: prompt },
-                        { inline_data: { mime_type: 'image/png', data: imageBase64 } }
-                    ]
-                }]
-            })
-        });
+        try {
+            // Llamar a Gemini
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { text: prompt },
+                            { inline_data: { mime_type: 'image/png', data: imageBase64 } }
+                        ]
+                    }]
+                })
+            });
 
-        const data = await response.json();
-        const text = data.candidates[0].content.parts[0].text;
-        
-        // Extraer JSON
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            
+            // Verificar estructura de respuesta
+            if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts) {
+                console.error('Respuesta inesperada:', JSON.stringify(data, null, 2));
+                throw new Error('Estructura de respuesta inválida');
+            }
+            
+            const text = data.candidates[0].content.parts[0].text;
+            
+            // Extraer JSON
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                return JSON.parse(jsonMatch[0]);
+            }
+            
+            // Si no hay JSON, devolver estructura por defecto
+            return {
+                analysis: text.substring(0, 200),
+                current_state: "unknown",
+                next_action: "Esperar",
+                playwright_code: "await page.waitForTimeout(1000);",
+                is_complete: false,
+                reasoning: "No se pudo parsear JSON, esperando"
+            };
+            
+        } catch (error) {
+            console.error('Error en analyzeWithGemini:', error.message);
+            // Devolver acción segura por defecto
+            return {
+                analysis: "Error en análisis",
+                current_state: "error",
+                next_action: "Detener",
+                playwright_code: null,
+                is_complete: true,
+                reasoning: `Error: ${error.message}`
+            };
         }
-        throw new Error('No se pudo parsear respuesta de Gemini');
     }
 
     async executePlaywrightCode(code) {
