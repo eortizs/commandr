@@ -346,6 +346,10 @@ class AgentRunner {
         const provider = process.env.LLM_PROVIDER || 'openai';
         const apiKey = process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY;
         
+        // DEBUG: Mostrar qué variables están cargando
+        console.log('   🔍 DEBUG LLM_PROVIDER:', provider);
+        console.log('   🔍 DEBUG API Key presente:', apiKey ? 'Sí' : 'No');
+        
         try {
             let response;
             
