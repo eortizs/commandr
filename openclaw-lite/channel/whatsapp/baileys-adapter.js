@@ -92,11 +92,23 @@ class WhatsAppAdapter {
         if (m.type !== 'notify') return;
         
         for (const msg of m.messages) {
-            // Ignorar solo mensajes de protocolo, pero procesar los "from me"
+            // Ignorar solo mensajes de protocolo
             if (msg.message?.protocolMessage) continue;
             
             const from = msg.key.remoteJid;
             const isFromMe = msg.key.fromMe;
+            
+            // IGNORAR mensajes del propio bot (para evitar loops)
+            // Si el mensaje viene del número de whitelist, es una respuesta del bot
+            const isBotResponse = this.whitelist.some(allowed => {
+                const allowedJid = allowed.includes('@') ? allowed : `${allowed}@s.whatsapp.net`;
+                return from === allowedJid;
+            });
+            
+            if (isBotResponse && !isFromMe) {
+                console.log(`   🤖 Ignorando respuesta del bot de ${from}`);
+                continue;
+            }
             
             // Para mensajes propios, usar el número de whitelist como destino de respuesta
             let replyTo = from;
