@@ -4,14 +4,34 @@
  * Servidor WebSocket + Orquestador
  */
 
+// Cargar variables de entorno PRIMERO
+const path = require('path');
+const envPath = path.join(__dirname, '..', '.env');
+
+// Intentar cargar dotenv si está instalado, sino hacerlo manualmente
+try {
+    require('dotenv').config({ path: envPath });
+} catch (e) {
+    // Fallback: cargar manualmente
+    const fs = require('fs');
+    if (fs.existsSync(envPath)) {
+        const envContent = fs.readFileSync(envPath, 'utf-8');
+        envContent.split('\n').forEach(line => {
+            const match = line.match(/^([^#=]+)=(.*)$/);
+            if (match) {
+                process.env[match[1].trim()] = match[2].trim();
+            }
+        });
+    }
+}
+
 const WebSocket = require('ws');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs-extra');
-const path = require('path');
 
 const CONFIG = {
-    port: process.env.PORT || 18789,
-    host: process.env.HOST || '127.0.0.1',
+    port: process.env.GATEWAY_PORT || process.env.PORT || 18789,
+    host: process.env.GATEWAY_HOST || process.env.HOST || '127.0.0.1',
     memoryPath: path.join(__dirname, '..', 'memory', 'MEMORY.md')
 };
 
