@@ -164,9 +164,9 @@ class Gateway {
         // Enviar al agente para procesar
         const response = await this.agent.processWhatsAppMessage(msg);
         
-        // Responder por WhatsApp
+        // Responder por WhatsApp (usar msg.to que es el destino correcto)
         if (response) {
-            await this.whatsapp.sendMessage(msg.from, response);
+            await this.whatsapp.sendMessage(msg.to || msg.from, response);
         }
     }
 

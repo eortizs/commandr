@@ -88,7 +88,7 @@ class WhatsAppAdapter {
         }
     }
 
-    handleMessages(m) {
+    async handleMessages(m) {
         if (m.type !== 'notify') return;
         
         for (const msg of m.messages) {
@@ -97,6 +97,14 @@ class WhatsAppAdapter {
             
             const from = msg.key.remoteJid;
             const isFromMe = msg.key.fromMe;
+            
+            // Para mensajes propios, usar el número de whitelist como destino de respuesta
+            let replyTo = from;
+            if (isFromMe && this.whitelist.length > 0) {
+                // Usar el primer número de whitelist como destino
+                replyTo = this.whitelist[0].includes('@') ? this.whitelist[0] : `${this.whitelist[0]}@s.whatsapp.net`;
+                console.log(`   📱 Mensaje propio - respondiendo a ${replyTo}`);
+            }
             
             // Validar whitelist si está configurada (solo para mensajes de otros, no "from me")
             if (this.whitelist.length > 0 && !isFromMe) {
@@ -125,23 +133,21 @@ class WhatsAppAdapter {
                 }
             }
             
-            // Log especial para mensajes propios
-            if (isFromMe) {
-                console.log(`   📱 Mensaje propio detectado de ${from}`);
-            }
-            
-            const messageData = this.parseMessage(msg);
+            const messageData = this.parseMessage(msg, replyTo);
             if (messageData) {
                 this.onMessage(messageData);
             }
         }
     }
 
-    parseMessage(msg) {
+    parseMessage(msg, replyTo = null) {
         try {
             const id = msg.key.id;
             const from = msg.key.remoteJid;
             const timestamp = msg.messageTimestamp;
+            
+            // Usar replyTo si se proporciona (para mensajes "from me")
+            const responseTo = replyTo || from;
             
             // Extraer contenido del mensaje
             let body = '';
@@ -168,6 +174,7 @@ class WhatsAppAdapter {
             return {
                 id,
                 from,
+                to: responseTo,  // Número al que responder
                 body,
                 type,
                 timestamp: new Date(timestamp * 1000).toISOString(),
