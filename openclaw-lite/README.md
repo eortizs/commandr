@@ -34,6 +34,63 @@ export OPENROUTER_API_KEY="sk-or-v1-..."
 npm start
 ```
 
+## 🚀 Instalación
+
+### Opción 1: Script automático (recomendado)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/eortizs/commandr/main/openclaw-lite/install.sh | bash
+```
+
+Luego configura tus API keys:
+```bash
+nano ~/.openclaw-lite/openclaw-lite/.env
+```
+
+### Opción 2: Manual
+
+```bash
+# 1. Clonar
+git clone --depth 1 https://github.com/eortizs/commandr.git
+cd commandr/openclaw-lite
+
+# 2. Instalar dependencias
+npm install
+
+# 3. Configurar
+cp .env.example .env
+nano .env  # Agrega tus API keys
+
+# 4. Validar
+node validate.js
+
+# 5. Iniciar
+npm start
+```
+
+### Requisitos
+
+| Requisito | Versión | Opcional |
+|-----------|---------|----------|
+| Node.js | 18+ | ❌ |
+| npm | 9+ | ❌ |
+| Python | 3.8+ | ✅ (para skills con pandas) |
+| ffmpeg | 5+ | ✅ (para video-processor) |
+| Git | 2+ | ✅ |
+
+### Validación
+
+```bash
+node validate.js
+```
+
+Verifica:
+- ✅ Node.js y npm instalados
+- ✅ Estructura de archivos
+- ✅ Dependencias npm
+- ✅ API keys configuradas
+- ✅ Puertos disponibles
+
 ## 🔌 Arquitectura
 
 ```
