@@ -43,9 +43,38 @@ async function assignPMToTask() {
         // PASO 4: Buscar y click en tarea con Partida = '1.1.2'
         step++;
         console.log(`📸 Paso ${step}: Buscar tarea con Partida 1.1.2`);
-        // Buscar la fila que contiene '1.1.2' y hacer click
-        const taskRow = await page.locator('tr:has-text("1.1.2")').first();
-        await taskRow.click();
+        // Esperar a que la tabla cargue
+        await page.waitForSelector('table, [role="table"], .MuiDataGrid-root', { timeout: 10000 });
+        await page.waitForTimeout(2000); // Esperar datos
+        await page.screenshot({ path: path.join(screenshotDir, `step-${step}-before-task.png`) });
+        
+        // Buscar de múltiples formas
+        const selectors = [
+            'tr:has-text("1.1.2")',
+            'td:has-text("1.1.2")',
+            '[data-field="partida"]:has-text("1.1.2")',
+            'text=1.1.2'
+        ];
+        
+        let found = false;
+        for (const selector of selectors) {
+            try {
+                const element = page.locator(selector).first();
+                if (await element.isVisible({ timeout: 5000 })) {
+                    console.log(`   ✅ Encontrado con selector: ${selector}`);
+                    await element.click();
+                    found = true;
+                    break;
+                }
+            } catch (e) {
+                console.log(`   ❌ No funciona: ${selector}`);
+            }
+        }
+        
+        if (!found) {
+            throw new Error('No se pudo encontrar la tarea con Partida 1.1.2');
+        }
+        
         await page.waitForTimeout(2000);
         await page.screenshot({ path: path.join(screenshotDir, `step-${step}-task.png`) });
         
