@@ -92,13 +92,14 @@ class WhatsAppAdapter {
         if (m.type !== 'notify') return;
         
         for (const msg of m.messages) {
-            // Ignorar mensajes de estado y propios
-            if (msg.key.fromMe || msg.message?.protocolMessage) continue;
+            // Ignorar solo mensajes de protocolo, pero procesar los "from me"
+            if (msg.message?.protocolMessage) continue;
             
             const from = msg.key.remoteJid;
+            const isFromMe = msg.key.fromMe;
             
-            // Validar whitelist si está configurada
-            if (this.whitelist.length > 0) {
+            // Validar whitelist si está configurada (solo para mensajes de otros, no "from me")
+            if (this.whitelist.length > 0 && !isFromMe) {
                 // Extraer número del JID (ej: 5215512345678@s.whatsapp.net -> 5215512345678)
                 // O manejar LID (ej: 110948232773826@lid)
                 const phoneNumber = from.split('@')[0];
@@ -122,6 +123,11 @@ class WhatsAppAdapter {
                     console.log(`   💡 Agrega a WHATSAPP_WHITELIST: ${from} o ${phoneNumber}`);
                     continue;
                 }
+            }
+            
+            // Log especial para mensajes propios
+            if (isFromMe) {
+                console.log(`   📱 Mensaje propio detectado de ${from}`);
             }
             
             const messageData = this.parseMessage(msg);
