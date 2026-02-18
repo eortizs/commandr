@@ -23,6 +23,14 @@ class WhatsAppAdapter {
         this.sock = null;
         this.authPath = path.join(__dirname, 'store', 'auth');
         this.isConnected = false;
+        
+        // Whitelist: solo aceptar mensajes de estos números
+        // Formato: 5215512345678@s.whatsapp.net (sin + ni espacios)
+        this.whitelist = (process.env.WHATSAPP_WHITELIST || '').split(',').filter(Boolean);
+        
+        if (this.whitelist.length > 0) {
+            console.log('   🔒 Whitelist activada:', this.whitelist.length, 'número(s)');
+        }
     }
 
     async init() {
@@ -86,6 +94,23 @@ class WhatsAppAdapter {
         for (const msg of m.messages) {
             // Ignorar mensajes de estado y propios
             if (msg.key.fromMe || msg.message?.protocolMessage) continue;
+            
+            const from = msg.key.remoteJid;
+            
+            // Validar whitelist si está configurada
+            if (this.whitelist.length > 0) {
+                // Extraer número del JID (ej: 5215512345678@s.whatsapp.net -> 5215512345678)
+                const phoneNumber = from.split('@')[0];
+                const isAllowed = this.whitelist.some(allowed => {
+                    // Permitir coincidencia parcial (sin @s.whatsapp.net)
+                    return phoneNumber === allowed || from === allowed;
+                });
+                
+                if (!isAllowed) {
+                    console.log(`   🚫 Mensaje bloqueado de ${from} (no está en whitelist)`);
+                    continue;
+                }
+            }
             
             const messageData = this.parseMessage(msg);
             if (messageData) {
