@@ -379,7 +379,6 @@ class AgentRunner {
         const fetch = globalThis.fetch || require('node-fetch');
         
         const model = process.env.OPENAI_MODEL || 'gpt-4';
-        const isReasoningModel = model.startsWith('o1') || model.startsWith('o3');
         
         const body = {
             model: model,
@@ -389,11 +388,6 @@ class AgentRunner {
             ],
             max_completion_tokens: 2048
         };
-        
-        // Solo agregar temperature si NO es modelo de reasoning
-        if (!isReasoningModel) {
-            body.temperature = 0.7;
-        }
         
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
