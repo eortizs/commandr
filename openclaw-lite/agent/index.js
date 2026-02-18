@@ -192,6 +192,117 @@ class AgentRunner {
                 return { success: true, notification };
             },
 
+            // Programación
+            json: {
+                parse: async (str) => {
+                    console.log(`   📝 json.parse`);
+                    try {
+                        return { success: true, data: JSON.parse(str) };
+                    } catch (error) {
+                        return { success: false, error: error.message };
+                    }
+                },
+                stringify: async (obj, space = 2) => {
+                    console.log(`   📝 json.stringify`);
+                    try {
+                        return { success: true, data: JSON.stringify(obj, null, space) };
+                    } catch (error) {
+                        return { success: false, error: error.message };
+                    }
+                }
+            },
+
+            csv: {
+                parse: async (content, delimiter = ',') => {
+                    console.log(`   📊 csv.parse`);
+                    try {
+                        const lines = content.split('\n').filter(l => l.trim());
+                        const headers = lines[0].split(delimiter).map(h => h.trim());
+                        const rows = lines.slice(1).map(line => {
+                            const values = line.split(delimiter).map(v => v.trim());
+                            return headers.reduce((obj, header, i) => {
+                                obj[header] = values[i];
+                                return obj;
+                            }, {});
+                        });
+                        return { success: true, headers, rows, count: rows.length };
+                    } catch (error) {
+                        return { success: false, error: error.message };
+                    }
+                },
+                stringify: async (rows, headers) => {
+                    console.log(`   📊 csv.stringify`);
+                    try {
+                        const lines = [headers.join(',')];
+                        rows.forEach(row => {
+                            lines.push(headers.map(h => row[h] || '').join(','));
+                        });
+                        return { success: true, data: lines.join('\n') };
+                    } catch (error) {
+                        return { success: false, error: error.message };
+                    }
+                }
+            },
+
+            hash: async (data, algorithm = 'sha256') => {
+                console.log(`   🔐 hash: ${algorithm}`);
+                try {
+                    const crypto = require('crypto');
+                    const hash = crypto.createHash(algorithm).update(data).digest('hex');
+                    return { success: true, hash };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+
+            uuid: async () => {
+                console.log(`   🆔 uuid`);
+                try {
+                    const { v4 } = require('uuid');
+                    return { success: true, uuid: v4() };
+                } catch (error) {
+                    // Fallback sin dependencia
+                    return { 
+                        success: true, 
+                        uuid: 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                            const r = Math.random() * 16 | 0;
+                            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+                        })
+                    };
+                }
+            },
+
+            regex: {
+                test: async (pattern, str) => {
+                    console.log(`   🔍 regex.test: ${pattern}`);
+                    try {
+                        const regex = new RegExp(pattern);
+                        return { success: true, matches: regex.test(str) };
+                    } catch (error) {
+                        return { success: false, error: error.message };
+                    }
+                },
+                match: async (pattern, str) => {
+                    console.log(`   🔍 regex.match: ${pattern}`);
+                    try {
+                        const regex = new RegExp(pattern, 'g');
+                        const matches = str.match(regex) || [];
+                        return { success: true, matches, count: matches.length };
+                    } catch (error) {
+                        return { success: false, error: error.message };
+                    }
+                },
+                replace: async (pattern, str, replacement) => {
+                    console.log(`   🔍 regex.replace: ${pattern}`);
+                    try {
+                        const regex = new RegExp(pattern, 'g');
+                        return { success: true, result: str.replace(regex, replacement) };
+                    } catch (error) {
+                        return { success: false, error: error.message };
+                    }
+                }
+            },
+
             cron: {
                 schedule: async (expression, task) => {
                     console.log(`   📅 cron.schedule: ${expression}`);
