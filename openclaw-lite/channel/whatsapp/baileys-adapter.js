@@ -100,14 +100,26 @@ class WhatsAppAdapter {
             // Validar whitelist si está configurada
             if (this.whitelist.length > 0) {
                 // Extraer número del JID (ej: 5215512345678@s.whatsapp.net -> 5215512345678)
+                // O manejar LID (ej: 110948232773826@lid)
                 const phoneNumber = from.split('@')[0];
+                const domain = from.split('@')[1];
+                
                 const isAllowed = this.whitelist.some(allowed => {
-                    // Permitir coincidencia parcial (sin @s.whatsapp.net)
-                    return phoneNumber === allowed || from === allowed;
+                    // Permitir coincidencia exacta del JID completo
+                    if (from === allowed) return true;
+                    
+                    // Permitir coincidencia del número (para @s.whatsapp.net)
+                    if (domain === 's.whatsapp.net' && phoneNumber === allowed) return true;
+                    
+                    // Permitir coincidencia del número para LID
+                    if (domain === 'lid' && phoneNumber === allowed) return true;
+                    
+                    return false;
                 });
                 
                 if (!isAllowed) {
                     console.log(`   🚫 Mensaje bloqueado de ${from} (no está en whitelist)`);
+                    console.log(`   💡 Agrega a WHATSAPP_WHITELIST: ${from} o ${phoneNumber}`);
                     continue;
                 }
             }
