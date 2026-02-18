@@ -23,6 +23,7 @@ class WhatsAppAdapter {
         this.sock = null;
         this.authPath = path.join(__dirname, 'store', 'auth');
         this.isConnected = false;
+        this.processing = false; // Bandera para evitar loops
         
         // Whitelist: solo aceptar mensajes de estos números
         // Formato: 5215512345678@s.whatsapp.net (sin + ni espacios)
@@ -91,6 +92,12 @@ class WhatsAppAdapter {
     async handleMessages(m) {
         if (m.type !== 'notify') return;
         
+        // Si estamos procesando, ignorar nuevos mensajes (evitar loops)
+        if (this.processing) {
+            console.log('   ⏳ Ignorando mensaje - procesando anterior');
+            return;
+        }
+        
         for (const msg of m.messages) {
             // Ignorar mensajes de protocolo
             if (msg.message?.protocolMessage) continue;
@@ -98,8 +105,13 @@ class WhatsAppAdapter {
             const from = msg.key.remoteJid;
             const isFromMe = msg.key.fromMe;
             
+            // IGNORAR mensajes propios (fromMe) para evitar loops
+            if (isFromMe) {
+                console.log(`   ⏭️  Ignorando mensaje propio de ${from}`);
+                continue;
+            }
+            
             // IGNORAR cualquier mensaje que venga del número de whitelist
-            // (incluyendo respuestas del bot y mensajes propios del usuario)
             const isFromWhitelistedNumber = this.whitelist.some(allowed => {
                 const allowedJid = allowed.includes('@') ? allowed : `${allowed}@s.whatsapp.net`;
                 return from === allowedJid;
@@ -110,17 +122,16 @@ class WhatsAppAdapter {
                 continue;
             }
             
-            // Para mensajes propios de otros números (no en whitelist), 
-            // responder al primer número de whitelist
-            let replyTo = from;
-            if (isFromMe && this.whitelist.length > 0) {
-                replyTo = this.whitelist[0].includes('@') ? this.whitelist[0] : `${this.whitelist[0]}@s.whatsapp.net`;
-                console.log(`   📱 Mensaje propio de otro número - respondiendo a ${replyTo}`);
-            }
-            
-            const messageData = this.parseMessage(msg, replyTo);
+            const messageData = this.parseMessage(msg);
             if (messageData) {
-                this.onMessage(messageData);
+                this.processing = true;
+                try {
+                    await this.onMessage(messageData);
+                } finally {
+                    setTimeout(() => {
+                        this.processing = false;
+                    }, 5000);
+                }
             }
         }
     }
