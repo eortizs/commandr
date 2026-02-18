@@ -34,6 +34,10 @@ class AIAssignPM {
 
 OBJETIVO: ${goal}
 
+CREDENCIALES DE LOGIN (USAR ESTAS EXACTAS):
+- Email: daniela.canizalez@fifa.com
+- Password: 123456
+
 HISTORIA DE ACCIONES:
 ${JSON.stringify(this.history, null, 2)}
 
