@@ -375,6 +375,9 @@ class AgentRunner {
     }
 
     async callOpenAI(prompt, context, apiKey) {
+        // Usar fetch nativo de Node.js 18+ o importar node-fetch
+        const fetch = globalThis.fetch || require('node-fetch');
+        
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -393,6 +396,9 @@ class AgentRunner {
         });
         
         const data = await response.json();
+        
+        // DEBUG
+        console.log('   🔍 DEBUG OpenAI response status:', response.status);
         
         // Manejar errores de la API
         if (data.error) {
@@ -414,6 +420,8 @@ class AgentRunner {
     }
 
     async callOpenRouter(prompt, context, apiKey) {
+        const fetch = globalThis.fetch || require('node-fetch');
+        
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -434,6 +442,9 @@ class AgentRunner {
         });
         
         const data = await response.json();
+        
+        // DEBUG
+        console.log('   🔍 DEBUG OpenRouter response status:', response.status);
         
         // Manejar errores de la API
         if (data.error) {
