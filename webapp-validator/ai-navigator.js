@@ -42,7 +42,7 @@ Responde en formato JSON:
   "analysis": "Descripción de lo que ves en la pantalla",
   "current_state": "¿En qué página/paso estamos?",
   "next_action": "Descripción de la siguiente acción a realizar",
-  "playwright_code": "Código JavaScript de Playwright para ejecutar (ej: await page.click('button#login'))",
+  "playwright_code": "Código JavaScript de Playwright. USA SELECTORES ROBUSTOS: prioriza atributos 'data-testid', IDs únicos, o texto visible exacto. Ejemplo: await page.click('[data-testid=\"fifa-link\"]') o await page.click('text=FIFA'). EVITA selectores complejos con múltiples niveles.",
   "is_complete": false,
   "reasoning": "Por qué decides esta acción"
 }`;
@@ -109,9 +109,28 @@ Responde en formato JSON:
 
     async executePlaywrightCode(code) {
         console.log('⚡ Ejecutando:', code);
-        // Ejecutar código de Playwright de forma segura
-        const func = new Function('page', `return (async () => { ${code} })()`);
-        await func(this.page);
+        try {
+            // Ejecutar código de Playwright de forma segura
+            const func = new Function('page', `return (async () => { ${code} })()`);
+            await func(this.page);
+        } catch (error) {
+            console.log(`⚠️  Error ejecutando código: ${error.message}`);
+            // Si falla, intentar con selector de texto más simple
+            if (error.message.includes('Timeout') && code.includes('click')) {
+                console.log('🔄 Intentando con selector alternativo...');
+                // Extraer texto del selector original si es posible
+                const textMatch = code.match(/text="([^"]+)"/) || code.match(/text='([^']+)'/);
+                if (textMatch) {
+                    const text = textMatch[1];
+                    console.log(`   Intentando: await page.click('text=${text}')`);
+                    await this.page.click(`text=${text}`);
+                } else {
+                    throw error;
+                }
+            } else {
+                throw error;
+            }
+        }
     }
 
     async navigate(goal) {
