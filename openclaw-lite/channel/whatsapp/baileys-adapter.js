@@ -92,57 +92,30 @@ class WhatsAppAdapter {
         if (m.type !== 'notify') return;
         
         for (const msg of m.messages) {
-            // Ignorar solo mensajes de protocolo
+            // Ignorar mensajes de protocolo
             if (msg.message?.protocolMessage) continue;
             
             const from = msg.key.remoteJid;
             const isFromMe = msg.key.fromMe;
             
-            // IGNORAR mensajes del propio bot (para evitar loops)
-            // Si el mensaje viene del número de whitelist, es una respuesta del bot
-            const isBotResponse = this.whitelist.some(allowed => {
+            // IGNORAR cualquier mensaje que venga del número de whitelist
+            // (incluyendo respuestas del bot y mensajes propios del usuario)
+            const isFromWhitelistedNumber = this.whitelist.some(allowed => {
                 const allowedJid = allowed.includes('@') ? allowed : `${allowed}@s.whatsapp.net`;
                 return from === allowedJid;
             });
             
-            if (isBotResponse && !isFromMe) {
-                console.log(`   🤖 Ignorando respuesta del bot de ${from}`);
+            if (isFromWhitelistedNumber) {
+                console.log(`   ⏭️  Ignorando mensaje de ${from} (whitelist)`);
                 continue;
             }
             
-            // Para mensajes propios, usar el número de whitelist como destino de respuesta
+            // Para mensajes propios de otros números (no en whitelist), 
+            // responder al primer número de whitelist
             let replyTo = from;
             if (isFromMe && this.whitelist.length > 0) {
-                // Usar el primer número de whitelist como destino
                 replyTo = this.whitelist[0].includes('@') ? this.whitelist[0] : `${this.whitelist[0]}@s.whatsapp.net`;
-                console.log(`   📱 Mensaje propio - respondiendo a ${replyTo}`);
-            }
-            
-            // Validar whitelist si está configurada (solo para mensajes de otros, no "from me")
-            if (this.whitelist.length > 0 && !isFromMe) {
-                // Extraer número del JID (ej: 5215512345678@s.whatsapp.net -> 5215512345678)
-                // O manejar LID (ej: 110948232773826@lid)
-                const phoneNumber = from.split('@')[0];
-                const domain = from.split('@')[1];
-                
-                const isAllowed = this.whitelist.some(allowed => {
-                    // Permitir coincidencia exacta del JID completo
-                    if (from === allowed) return true;
-                    
-                    // Permitir coincidencia del número (para @s.whatsapp.net)
-                    if (domain === 's.whatsapp.net' && phoneNumber === allowed) return true;
-                    
-                    // Permitir coincidencia del número para LID
-                    if (domain === 'lid' && phoneNumber === allowed) return true;
-                    
-                    return false;
-                });
-                
-                if (!isAllowed) {
-                    console.log(`   🚫 Mensaje bloqueado de ${from} (no está en whitelist)`);
-                    console.log(`   💡 Agrega a WHATSAPP_WHITELIST: ${from} o ${phoneNumber}`);
-                    continue;
-                }
+                console.log(`   📱 Mensaje propio de otro número - respondiendo a ${replyTo}`);
             }
             
             const messageData = this.parseMessage(msg, replyTo);
