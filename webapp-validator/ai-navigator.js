@@ -200,7 +200,7 @@ async function main() {
     
     try {
         await navigator.init();
-        await navigator.navigate('Iniciar sesión con email daniela.canizalez@fifa.com y password 123456');
+        await navigator.navigate('Iniciar sesión con email daniela.canizalez@fifa.com y password 123456, luego buscar y hacer clic en el link FIFA en el sidebar');
     } catch (error) {
         console.error('❌ Error:', error);
     } finally {
