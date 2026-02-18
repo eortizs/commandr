@@ -88,8 +88,11 @@ async function assignPMToTask() {
         // PASO 6: Escribir "Hola Mundo" en el textarea
         step++;
         console.log(`📸 Paso ${step}: Escribir Hola Mundo`);
-        // Buscar textarea por placeholder o por ser un textarea visible
-        await page.fill('textarea[placeholder*="reporte"], textarea.MuiInputBase-input', 'Hola Mundo');
+        // Hacer scroll para ver el textarea de reporte
+        await page.evaluate(() => window.scrollBy(0, 500));
+        await page.waitForTimeout(1000);
+        // Buscar textarea por placeholder específico
+        await page.fill('textarea[placeholder*="reporte"]', 'Hola Mundo');
         await page.waitForTimeout(1000);
         await page.screenshot({ path: path.join(screenshotDir, `step-${step}-texto.png`) });
         
