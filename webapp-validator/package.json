@@ -1,0 +1,13 @@
+{
+  "name": "webapp-validator",
+  "version": "1.0.0",
+  "description": "Validación automatizada de webapps con Playwright",
+  "main": "validate-login.js",
+  "scripts": {
+    "test": "node validate-login.js",
+    "install-browsers": "npx playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "^1.41.0"
+  }
+}
